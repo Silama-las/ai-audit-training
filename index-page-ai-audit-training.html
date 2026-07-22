@@ -25,12 +25,11 @@
 
     html, body {
       width: 100%;
-      min-height: 100%;
+      height: 100%;
       overflow: hidden;
     }
 
     body {
-      height: 100vh;
       background: var(--bg);
       color: var(--ink);
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
@@ -72,7 +71,6 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 16px;
     }
 
     h1 {
@@ -334,20 +332,6 @@
       font-family: var(--mono);
       font-size: 10px;
     }
-
-    @media (max-width: 800px) {
-      .main-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .side {
-        display: none;
-      }
-
-      .bar-row {
-        grid-template-columns: minmax(180px, 45%) 1fr 50px;
-      }
-    }
   </style>
 </head>
 <body>
@@ -362,7 +346,7 @@
     </div>
   </div>
 
-  <div id="mainGrid" class="main-grid">
+  <div class="main-grid">
     <div id="pollDisplay" class="poll-area">
       <div id="questionPlaceholder" class="placeholder">
         Нажмите «Старт» для начала квиза
@@ -510,36 +494,38 @@ let timerInterval = null;
 let revealTimeout = null;
 let currentQid = null;
 let quizFinished = false;
-
-async function setIdleState() {
-  await db.ref('state').update({
-    currentPoll: null,
-    quizStatus: 'idle',
-    showResults: false
-  });
-}
+let sessionId = Date.now();
 
 async function startQuiz() {
-  if (currentIndex !== -1 && !quizFinished) return;
+  console.log('startQuiz clicked');
+
+  if (timerInterval) clearInterval(timerInterval);
+  if (revealTimeout) clearTimeout(revealTimeout);
+
+  sessionId = Date.now();
+  currentIndex = 0;
+  currentQid = null;
+  quizFinished = false;
+
+  startBtn.disabled = true;
+  resultsBtn.disabled = true;
 
   resultsBlock.classList.add('hidden');
   pollDisplay.classList.remove('hidden');
-  resultsBtn.disabled = true;
-  startBtn.disabled = true;
 
   await db.ref('responses').set(null);
-  await db.ref('state').update({
+
+  await db.ref('state').set({
+    session: sessionId,
     quizStatus: 'running',
     showResults: false,
-    session: Date.now()
+    currentPoll: null
   });
 
-  quizFinished = false;
-  currentIndex = 0;
-  showQuestion(currentIndex);
+  showQuestion(0);
 }
 
-function showQuestion(index) {
+async function showQuestion(index) {
   if (index >= questionOrder.length) {
     finishQuiz();
     return;
@@ -577,7 +563,9 @@ function showQuestion(index) {
     barsContainer.appendChild(row);
   });
 
-  db.ref('state/currentPoll').set({
+  statusDiv.textContent = `Вопрос ${index + 1} из ${questionOrder.length}`;
+
+  await db.ref('state/currentPoll').set({
     id: qid,
     q: qData.q,
     options: qData.options,
@@ -586,10 +574,9 @@ function showQuestion(index) {
     index: index,
     total: questionOrder.length,
     status: 'active',
-    startedAt: firebase.database.ServerValue.TIMESTAMP
+    session: sessionId,
+    startedAtClient: Date.now()
   });
-
-  statusDiv.textContent = `Вопрос ${index + 1} из ${questionOrder.length}`;
 
   updateBars(qid);
 
@@ -603,9 +590,7 @@ function showQuestion(index) {
       clearInterval(timerInterval);
       timerInterval = null;
 
-      await db.ref('state/currentPoll').update({
-        status: 'revealed'
-      });
+      await db.ref('state/currentPoll/status').set('revealed');
 
       revealCorrect(qid);
 
@@ -689,6 +674,7 @@ async function finishQuiz() {
 
 async function showResults() {
   const scores = {};
+  const names = {};
 
   for (const qid of questionOrder) {
     const qData = QUESTIONS[qid];
@@ -697,10 +683,14 @@ async function showResults() {
 
     if (!data) continue;
 
-    Object.entries(data).forEach(([userName, resp]) => {
-      if (!scores[userName]) scores[userName] = 0;
+    Object.entries(data).forEach(([key, resp]) => {
+      const displayName = resp.name || key;
+
+      if (!scores[key]) scores[key] = 0;
+      names[key] = displayName;
+
       if (Number(resp.answer) === qData.correct) {
-        scores[userName]++;
+        scores[key]++;
       }
     });
   }
@@ -713,19 +703,17 @@ async function showResults() {
   resultsBlock.classList.remove('hidden');
   statusDiv.textContent = 'Результаты';
 
-  await db.ref('state').update({
-    showResults: true
-  });
+  await db.ref('state/showResults').set(true);
 
   if (sorted.length === 0) {
     resultsList.innerHTML = '<div style="text-align:center;color:var(--dim);padding:12px;">Нет участников</div>';
     return;
   }
 
-  resultsList.innerHTML = sorted.map(([name, score], idx) => `
+  resultsList.innerHTML = sorted.map(([key, score], idx) => `
     <div class="lb-row">
       <div class="lb-rank">${idx + 1}</div>
-      <div class="lb-name">${esc(name)}</div>
+      <div class="lb-name">${esc(names[key] || key)}</div>
       <div class="lb-score">${score}</div>
     </div>
   `).join('');
@@ -737,17 +725,19 @@ async function resetAll() {
   if (timerInterval) clearInterval(timerInterval);
   if (revealTimeout) clearTimeout(revealTimeout);
 
-  await db.ref('responses').set(null);
-  await db.ref('state').set({
-    session: Date.now(),
-    quizStatus: 'idle',
-    currentPoll: null,
-    showResults: false
-  });
-
+  sessionId = Date.now();
   currentIndex = -1;
   currentQid = null;
   quizFinished = false;
+
+  await db.ref('responses').set(null);
+  await db.ref('state').set({
+    session: sessionId,
+    quizStatus: 'idle',
+    currentPoll: null,
+    showResults: false,
+    resetAt: Date.now()
+  });
 
   startBtn.disabled = false;
   resultsBtn.disabled = true;
@@ -760,6 +750,9 @@ async function resetAll() {
   resultsBlock.classList.add('hidden');
   resultsList.innerHTML = '';
 
+  barsContainer.innerHTML = '';
+  totalVotesSpan.textContent = '0';
+  timerSec.textContent = '15';
   statusDiv.textContent = 'Ожидание старта';
 }
 
@@ -779,13 +772,6 @@ function esc(s) {
     '"': '&quot;'
   }[c]));
 }
-
-setIdleState();
-
-questionPlaceholder.classList.remove('hidden');
-questionContent.classList.add('hidden');
-resultsBlock.classList.add('hidden');
-statusDiv.textContent = 'Ожидание старта';
 </script>
 </body>
 </html>
