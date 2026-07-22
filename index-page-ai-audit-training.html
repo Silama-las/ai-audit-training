@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ведущий квиз</title>
+  <style>
+    /* Стили для ведущего */
+    :root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#171b22;--dim:#5d6673;--blue:#2049c7;--green:#187a52}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;padding:30px;display:flex;flex-direction:column;min-height:100vh}
+    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
+    .header h1{font-size:28px}
+    .poll-area{background:var(--card);border-radius:20px;padding:30px;box-shadow:0 4px 12px rgba(0,0,0,.05);margin-bottom:30px}
+    .poll-area h2{font-size:26px;margin-bottom:20px}
+    .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+    .bar-row{display:flex;align-items:center;gap:12px}
+    .bar-label{width:120px;font-weight:500}
+    .bar-track{flex:1;height:32px;background:#f0ede8;border-radius:16px;overflow:hidden;position:relative}
+    .bar-fill{height:100%;background:var(--blue);border-radius:16px;transition:width .3s;width:0%;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-weight:600;font-size:14px}
+    .bar-fill.correct{background:var(--green)}
+    .total{font-size:14px;color:var(--dim);margin-bottom:10px}
+    .leaderboard{background:var(--card);border-radius:20px;padding:25px;box-shadow:0 4px 12px rgba(0,0,0,.05)}
+    .leaderboard h3{font-size:20px;margin-bottom:15px}
+    .lb-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
+    .lb-row:last-child{border-bottom:none}
+    .lb-rank{font-weight:700;color:var(--dim);width:40px}
+    .lb-name{flex:1}
+    .lb-score{font-weight:700;color:var(--blue)}
+    .controls{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap}
+    .controls button{padding:10px 20px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer}
+    .controls button.secondary{background:#ddd;color:#333}
+    .controls button.danger{background:#c0392b}
+    .status{font-size:14px;color:var(--dim);margin-top:10px}
+    .hidden{display:none}
+    .timer{font-weight:700;color:var(--blue);font-size:20px}
+    .leaderboard {max-height: 420px; overflow-y: auto;}
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🎯 Квиз</h1>
+  <div class="status" id="status">Ожидание вопроса</div>
+</div>
+
+<div id="pollDisplay" class="poll-area">
+  <div id="questionPlaceholder" style="text-align:center;padding:40px;color:var(--dim);">
+    Нажмите «Следующий вопрос», чтобы начать
+  </div>
+  <div id="questionContent" class="hidden">
+    <h2 id="questionText"></h2>
+    <div id="timerDisplay" class="timer">⏱️ <span id="timerSec">0</span> сек</div>
+    <div class="bars" id="barsContainer"></div>
+    <div class="total">Всего голосов: <span id="totalVotes">0</span></div>
+  </div>
+</div>
+
+<div class="leaderboard">
+  <h3>🏆 Топ‑5 участников</h3>
+  <div id="leaderboardList">
+    <div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="nextBtn">➡️ Следующий вопрос</button>
+  <button id="resetBtn" class="danger">🔄 Сбросить все голоса</button>
+  <button id="manualBtn" class="secondary">👆 Ручной режим (M)</button>
+</div>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+// ===== КОНФИГУРАЦИЯ ВОПРОСОВ (ваши 7 вопросов) =====
+const QUESTIONS = {
+  q1: {
+    q: 'Что может утечь при использовании внешней модели по API?',
+    options: ['промпт и ответ в логах', 'данные для дообучения', 'всё вышеперечисленное'],
+    correct: 2,
+    time: 20
+  },
+  q2: {
+    q: 'Что нельзя отправлять во внешние модели?',
+    options: ['шаблоны договоров', 'обезличенные данные', 'персональные и финансовые данные'],
+    correct: 2,
+    time: 20
+  },
+  q3: {
+    q: 'Какой промпт даст структурированный результат при проверке договора?',
+    options: [
+      '«Проверь договор аренды»',
+      '«Найди риски для арендатора»',
+      '«Проверь по чек‑листу: индексация, разрыв, штрафы, субаренда. Дай цитату, риск и оценку»'
+    ],
+    correct: 2,
+    time: 20
+  },
+  q4: {
+    q: 'Какой из перечисленных инструментов Яндекса представляет собой веб‑агента без установки (работает с Календарём, Трекером, Вики, Почтой)?',
+    options: ['Стефания', 'MARS', 'Гена (GENA)', 'Клешня Алисы Про'],
+    correct: 3,
+    time: 20
+  },
+  q5: {
+    q: 'Что такое MCP в контексте AI‑агентов?',
+    options: [
+      'метод машинного обучения',
+      'стандарт подключения модели к сервисам («розетка» для инструментов)',
+      'тип языковой модели',
+      'способ шифрования данных'
+    ],
+    correct: 1,
+    time: 20
+  },
+  q6: {
+    q: 'Что такое «промпт» в контексте работы языковых моделей?',
+    options: [
+      'алгоритм обучения модели',
+      'запрос или инструкция, подаваемая на вход модели',
+      'метод оценки качества ответов модели',
+      'тип нейросети'
+    ],
+    correct: 1,
+    time: 20
+  },
+  q7: {
+    q: 'Сколько уровней ИИ выделяется в рамках представленной классификации?',
+    options: ['3', '4', '5', '6'],
+    correct: 2,
+    time: 20
+  }
+};
+
+// ===== FIREBASE =====
+const cfg = window.QUIZ_CONFIG || {};
+if (!cfg.firebase) {
+  document.body.innerHTML = '<h1>Ошибка: нет config.js</h1>';
+  throw new Error('config missing');
+}
+firebase.initializeApp(cfg.firebase);
+const db = firebase.database();
+
+// ===== СОСТОЯНИЕ =====
+let currentQuestionId = null;      // id текущего вопроса (q1..q7)
+let questionOrder = ['q1','q2','q3','q4','q5','q6','q7'];
+let currentIndex = -1;            // индекс в массиве
+let timerTimeout = null;
+let isAnsweredRevealed = false;   // показан ли правильный ответ
+
+// Ссылки на DOM
+const pollDisplay = document.getElementById('pollDisplay');
+const questionPlaceholder = document.getElementById('questionPlaceholder');
+const questionContent = document.getElementById('questionContent');
+const questionText = document.getElementById('questionText');
+const timerSec = document.getElementById('timerSec');
+const barsContainer = document.getElementById('barsContainer');
+const totalVotesSpan = document.getElementById('totalVotes');
+const leaderboardList = document.getElementById('leaderboardList');
+const statusDiv = document.getElementById('status');
+
+// ===== ОТОБРАЖЕНИЕ ТЕКУЩЕГО ВОПРОСА =====
+function showQuestion(questionId) {
+  // Очищаем старый таймер
+  if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
+  const qData = QUESTIONS[questionId];
+  if (!qData) return;
+
+  currentQuestionId = questionId;
+  isAnsweredRevealed = false;
+
+  // Обновляем UI
+  questionPlaceholder.classList.add('hidden');
+  questionContent.classList.remove('hidden');
+  questionText.textContent = qData.q;
+  timerSec.textContent = qData.time;
+
+  // Очищаем столбики
+  barsContainer.innerHTML = '';
+  qData.options.forEach((opt, i) => {
+    const row = document.createElement('div');
+    row.className = 'bar-row';
+    row.innerHTML = `
+      <div class="bar-label">${esc(opt)}</div>
+      <div class="bar-track">
+        <div class="bar-fill" id="bar-${questionId}-${i}" style="width:0%;">0</div>
+      </div>
+    `;
+    barsContainer.appendChild(row);
+  });
+
+  // Обновим счётчики голосов (из responses)
+  updateBars(questionId);
+
+  // Обновим таймер (автопоказ ответа)
+  startTimer(questionId, qData.time);
+
+  // Устанавливаем currentPoll в Firebase, чтобы страница голосования показала вопрос
+  db.ref('state/currentPoll').set({
+    id: questionId,
+    q: qData.q,
+    options: qData.options,
+    correct: qData.correct
+  });
+
+  statusDiv.textContent = `Вопрос ${questionId} активен`;
+}
+
+// ===== ТАЙМЕР ДЛЯ АВТОПОКАЗА ОТВЕТА =====
+function startTimer(questionId, seconds) {
+  let remaining = seconds;
+  timerSec.textContent = remaining;
+
+  timerTimeout = setInterval(() => {
+    remaining--;
+    timerSec.textContent = remaining;
+    if (remaining <= 0) {
+      clearInterval(timerTimeout);
+      timerTimeout = null;
+      // Показываем правильный ответ
+      revealCorrectAnswer(questionId);
+    }
+  }, 1000);
+}
+
+function revealCorrectAnswer(questionId) {
+  if (isAnsweredRevealed) return;
+  isAnsweredRevealed = true;
+  const qData = QUESTIONS[questionId];
+  if (!qData) return;
+  const correctIdx = qData.correct;
+  // Подсветим правильный столбик
+  const correctBar = document.getElementById(`bar-${questionId}-${correctIdx}`);
+  if (correctBar) {
+    correctBar.classList.add('correct');
+  }
+  // Также можно показать пояснение, но у нас его нет – можно добавить в вопросы.
+  statusDiv.textContent = `✅ Правильный ответ: ${qData.options[correctIdx]}`;
+}
+
+// ===== ОБНОВЛЕНИЕ СТОЛБИКОВ =====
+function updateBars(questionId) {
+  const qData = QUESTIONS[questionId];
+  if (!qData) return;
+  const counts = new Array(qData.options.length).fill(0);
+  // Читаем все ответы на этот вопрос из Firebase
+  db.ref('responses/' + questionId).once('value', (snap) => {
+    const data = snap.val();
+    if (data) {
+      Object.values(data).forEach(resp => {
+        const idx = resp.answer;
+        if (idx >= 0 && idx < counts.length) counts[idx]++;
+      });
+    }
+    // Обновляем столбики
+    const total = counts.reduce((a,b) => a + b, 0);
+    document.getElementById('totalVotes').textContent = total;
+    qData.options.forEach((opt, i) => {
+      const bar = document.getElementById(`bar-${questionId}-${i}`);
+      if (bar) {
+        const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
+        bar.style.width = pct + '%';
+        bar.textContent = counts[i] > 0 ? counts[i] : '';
+      }
+    });
+    // Обновляем рейтинг после получения данных
+    updateLeaderboard();
+  });
+}
+
+// ===== РЕЙТИНГ (ТОП‑5) =====
+async function updateLeaderboard() {
+  const allQuestions = Object.keys(QUESTIONS);
+  const scores = {};
+
+  for (const qid of allQuestions) {
+    const qData = QUESTIONS[qid];
+    const snap = await db.ref('responses/' + qid).once('value');
+    const data = snap.val();
+    if (!data) continue;
+    Object.entries(data).forEach(([userName, resp]) => {
+      const isCorrect = (resp.answer === qData.correct);
+      if (isCorrect) {
+        scores[userName] = (scores[userName] || 0) + 1;
+      }
+    });
+  }
+
+  // Сортируем и берём топ‑10
+  const sorted = Object.entries(scores)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+
+  if (sorted.length === 0) {
+    leaderboardList.innerHTML = `<div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>`;
+    return;
+  }
+
+  let html = '';
+  sorted.forEach(([name, score], idx) => {
+    let medal;
+    if (idx === 0) medal = '🥇';
+    else if (idx === 1) medal = '🥈';
+    else if (idx === 2) medal = '🥉';
+    else medal = `${idx+1}.`;
+    html += `
+      <div class="lb-row">
+        <span class="lb-rank">${medal}</span>
+        <span class="lb-name">${esc(name)}</span>
+        <span class="lb-score">${score} балл${score>1?'а':''}</span>
+      </div>
+    `;
+  });
+  leaderboardList.innerHTML = html;
+}
+
+// ===== УПРАВЛЕНИЕ =====
+function nextQuestion() {
+  if (currentIndex < questionOrder.length - 1) {
+    currentIndex++;
+    showQuestion(questionOrder[currentIndex]);
+  } else {
+    statusDiv.textContent = 'Все вопросы пройдены!';
+    questionContent.classList.add('hidden');
+    questionPlaceholder.classList.remove('hidden');
+    questionPlaceholder.innerHTML = '🎉 Квиз завершён! Спасибо всем участникам.';
+    // Удаляем currentPoll, чтобы голосование закрылось
+    db.ref('state/currentPoll').set(null);
+  }
+}
+
+function resetAll() {
+  // Сброс всех голосов (удаляем все responses)
+  if (confirm('Удалить все ответы участников?')) {
+    db.ref('responses').set(null);
+    // Также сбрасываем счётчики в polls (если используем)
+    db.ref('polls').set(null);
+    // Сбрасываем сессию, чтобы телефоны обновились
+    db.ref('state/session').set(Date.now());
+    statusDiv.textContent = 'Все данные сброшены';
+    // Возвращаем к первому вопросу
+    currentIndex = -1;
+    questionContent.classList.add('hidden');
+    questionPlaceholder.classList.remove('hidden');
+    questionPlaceholder.innerHTML = 'Нажмите «Следующий вопрос», чтобы начать';
+    leaderboardList.innerHTML = '<div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>';
+    if (timerTimeout) clearTimeout(timerTimeout);
+  }
+}
+
+// ===== РУЧНОЙ РЕЖИМ (для теста) =====
+let manualMode = false;
+document.getElementById('manualBtn').addEventListener('click', () => {
+  manualMode = !manualMode;
+  document.getElementById('manualBtn').style.background = manualMode ? 'var(--green)' : '#ddd';
+  statusDiv.textContent = manualMode ? 'Ручной режим: клик по столбику = голос' : 'Ожидание';
+});
+// Обработка кликов по столбикам в ручном режиме (делегирование)
+document.addEventListener('click', (e) => {
+  if (!manualMode) return;
+  const bar = e.target.closest('.bar-fill');
+  if (!bar) return;
+  const idMatch = bar.id.match(/bar-(q\d+)-(\d+)/);
+  if (!idMatch) return;
+  const qid = idMatch[1];
+  const idx = parseInt(idMatch[2]);
+  // Добавляем голос вручную (имитация)
+  const qData = QUESTIONS[qid];
+  if (!qData) return;
+  // Записываем фиктивного пользователя (например, "Manual_"+idx)
+  const userName = 'Manual_' + Date.now();
+  db.ref('responses/' + qid + '/' + userName).set({
+    name: userName,
+    answer: idx,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  }).then(() => {
+    updateBars(qid);
+  });
+});
+
+// ===== ОБРАБОТЧИКИ КНОПОК =====
+document.getElementById('nextBtn').addEventListener('click', nextQuestion);
+document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// ===== ПРИ ЗАГРУЗКЕ =====
+// Показываем первый вопрос автоматически (можно по желанию)
+// Я предлагаю не показывать автоматически, а ждать нажатия "Следующий"
+// Чтобы ведущий сам управлял.
+// Можно также добавить клавиатурные сокращения: стрелка вправо -> next, R -> вручную показать ответ (если нужно)
+
+// ===== ПОДПИСКА НА ИЗМЕНЕНИЯ ОТВЕТОВ ДЛЯ АВТООБНОВЛЕНИЯ СТОЛБИКОВ =====
+// Будем слушать изменения в responses и обновлять столбики для текущего вопроса
+db.ref('responses').on('child_added', (snap) => {
+  // при добавлении любого ответа обновляем текущий вопрос
+  if (currentQuestionId) {
+    updateBars(currentQuestionId);
+  }
+});
+db.ref('responses').on('child_changed', (snap) => {
+  if (currentQuestionId) updateBars(currentQuestionId);
+});
+db.ref('responses').on('child_removed', (snap) => {
+  if (currentQuestionId) updateBars(currentQuestionId);
+});
+
+// Также обновляем рейтинг при любом изменении
+db.ref('responses').on('value', () => {
+  updateLeaderboard();
+});
+
+// При загрузке показываем заглушку
+questionPlaceholder.classList.remove('hidden');
+questionContent.classList.add('hidden');
+statusDiv.textContent = 'Готов к работе';
+
+// ===== (Опционально) Горячие клавиши =====
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight') nextQuestion();
+  if (e.key === 'r' && currentQuestionId) {
+    // Принудительно показать ответ
+    revealCorrectAnswer(currentQuestionId);
+  }
+  if (e.key === 'm') {
+    document.getElementById('manualBtn').click();
+  }
+});
+
+</script>
+</body>
+</html>
