@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Голосование</title>
+  <style>
+    /* Стили как в вашем примере, добавим поле для имени */
+    :root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#171b22;--blue:#2049c7}
+    *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{min-height:100vh;background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;padding:22px 18px 40px;display:flex;flex-direction:column}
+    .top{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:20px}
+    h1{font-size:23px;font-weight:800;line-height:1.3;margin-bottom:24px}
+    .opts{display:flex;flex-direction:column;gap:12px}
+    .opt{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;font-size:17px;font-weight:600;cursor:pointer;text-align:left;box-shadow:0 1px 2px rgba(0,0,0,.05);transition:all .2s}
+    .opt:active{transform:scale(.975)}
+    .opt.sel{border-color:var(--blue);background:#e8edfb}
+    .opt:disabled{opacity:0.5;cursor:default;transform:none}
+    .name-input{margin-bottom:20px;display:flex;gap:10px;align-items:center}
+    .name-input input{padding:12px 16px;border:1px solid var(--line);border-radius:10px;font-size:16px;flex:1}
+    .name-input button{padding:12px 24px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-weight:600;cursor:pointer}
+    .state{margin:auto;text-align:center;color:#5d6673;font-size:16px;line-height:1.6;padding:40px 10px}
+    .state .big{font-size:52px;margin-bottom:18px}
+    .foot{margin-top:auto;padding-top:30px;font-size:11px;color:#98a0ab;text-align:center}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--blue);animation:blink 1.2s infinite;margin:0 3px}
+    .dot:nth-child(2){animation-delay:.2s}.dot:nth-child(3){animation-delay:.4s}
+    @keyframes blink{0%,100%{opacity:.2}50%{opacity:1}}
+  </style>
+</head>
+<body>
+<div class="top">ИИ для аудиторов · квиз</div>
+<div id="app"><div class="state"><span class="dot"></span><span class="dot"></span><span class="dot"></span><br><br>Подключаюсь…</div></div>
+<div class="foot">анонимно · один голос на вопрос</div>
+
+<script src="config.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script>
+const app = document.getElementById('app');
+const cfg = window.QUIZ_CONFIG || {};
+const ok = cfg.firebase && cfg.firebase.apiKey;
+
+if (!ok) {
+  app.innerHTML = `<div class="state"><div class="big">⚠️</div>Ошибка: нет config.js</div>`;
+} else {
+  firebase.initializeApp(cfg.firebase);
+  const db = firebase.database();
+  let currentPoll = null;
+  let myName = localStorage.getItem('quizUserName') || '';
+
+  // --- Поле ввода имени ---
+  function askName() {
+    return new Promise((resolve) => {
+      const saved = localStorage.getItem('quizUserName');
+      if (saved && saved.trim()) {
+        myName = saved.trim();
+        resolve(myName);
+        return;
+      }
+      app.innerHTML = `
+        <div class="name-input">
+          <input id="nameInput" type="text" placeholder="Введите ваше имя" value="${myName}">
+          <button id="nameBtn">Продолжить</button>
+        </div>
+        <div class="state" style="margin-top:20px;font-size:14px;color:#888;">Это нужно для рейтинга</div>
+      `;
+      document.getElementById('nameBtn').addEventListener('click', () => {
+        const val = document.getElementById('nameInput').value.trim();
+        if (val) {
+          myName = val;
+          localStorage.setItem('quizUserName', myName);
+          resolve(myName);
+        } else {
+          alert('Пожалуйста, введите имя');
+        }
+      });
+      document.getElementById('nameInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('nameBtn').click();
+      });
+    });
+  }
+
+  // --- Подписка на текущий опрос ---
+  db.ref('state/currentPoll').on('value', async (snap) => {
+    const poll = snap.val();
+    if (!poll || !poll.id) {
+      currentPoll = null;
+      app.innerHTML = `<div class="state"><div class="big">⏳</div>Ждём вопрос от ведущего…</div>`;
+      return;
+    }
+    // Если вопрос не изменился – ничего не делаем
+    if (currentPoll && currentPoll.id === poll.id) return;
+    currentPoll = poll;
+
+    // Убедимся, что имя есть
+    if (!myName) await askName();
+
+    // Проверяем, голосовал ли уже этот пользователь за этот вопрос
+    const voteRef = db.ref('responses/' + poll.id + '/' + myName);
+    const snapshot = await voteRef.once('value');
+    if (snapshot.exists()) {
+      // Уже голосовал
+      app.innerHTML = `<div class="state"><div class="big">✓</div><b>Вы уже ответили.</b><br>Спасибо! Ждём следующий вопрос.</div>`;
+      return;
+    }
+
+    // Рендерим вопрос
+    renderPoll(poll);
+  });
+
+  function renderPoll(poll) {
+    app.innerHTML = `
+      <h1>${esc(poll.q)}</h1>
+      <div class="opts">
+        ${poll.options.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}
+      </div>
+    `;
+    app.querySelectorAll('.opt').forEach(btn => {
+      btn.addEventListener('click', () => vote(poll.id, +btn.dataset.i, btn));
+    });
+  }
+
+  async function vote(questionId, answerIndex, btn) {
+    if (!myName) return;
+    // Блокируем кнопки
+    app.querySelectorAll('.opt').forEach(b => b.disabled = true);
+    btn.classList.add('sel');
+
+    try {
+      // Пишем в базу: responses/{questionId}/{userName}
+      await db.ref('responses/' + questionId + '/' + myName).set({
+        name: myName,
+        answer: answerIndex,
+        timestamp: firebase.database.ServerValue.TIMESTAMP
+      });
+      // Показываем спасибо
+      app.innerHTML = `<div class="state"><div class="big">✓</div><b>Голос принят.</b><br>Смотрите на экран — результат уже там.</div>`;
+    } catch(e) {
+      alert('Ошибка, попробуйте ещё раз');
+      app.querySelectorAll('.opt').forEach(b => b.disabled = false);
+      btn.classList.remove('sel');
+    }
+  }
+
+  function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+  // Если нет имени – показать запрос сразу
+  if (!myName) askName();
+}
+</script>
+</body>
+</html>
