@@ -5,251 +5,404 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ведущий квиз</title>
   <style>
-    /* === Розовая цветовая гамма === */
     :root {
       --bg: #f6f4ee;
       --card: #ffffff;
       --line: #e2ddd0;
       --ink: #171b22;
       --dim: #5d6673;
-      --pink: #e91e63;       /* основной розовый */
+      --pink: #e91e63;
       --green: #2e7d32;
+      --red: #c0392b;
       --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
     }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
+
+    html, body {
+      width: 100%;
+      min-height: 100%;
+      overflow: hidden;
+    }
+
     body {
-      min-height: 100vh;
+      height: 100vh;
       background: var(--bg);
       color: var(--ink);
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      padding: 20px 25px;
+      padding: 12px 18px;
       display: flex;
-      flex-direction: column;
+      align-items: center;
       justify-content: center;
     }
-    .hidden { display: none !important; }
 
-    /* Шапка */
-    .top {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--pink);
-      margin-bottom: 10px;
+    .hidden {
+      display: none !important;
     }
-    .header {
+
+    .wrap {
+      width: 100%;
+      max-width: 1120px;
+      height: calc(100vh - 24px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 10px;
+    }
+
+    .topline {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 15px;
+      gap: 16px;
     }
-    .header h1 {
-      font-size: 26px;
+
+    .brand {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--pink);
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    h1 {
+      font-size: 24px;
       font-weight: 800;
     }
+
     .status {
       font-size: 14px;
       color: var(--dim);
+      white-space: nowrap;
     }
 
-    /* Блок вопроса */
-    .poll-area {
+    .main-grid {
+      min-height: 0;
+      display: grid;
+      grid-template-columns: 1fr 230px;
+      gap: 12px;
+    }
+
+    .poll-area,
+    .side,
+    .results {
       background: var(--card);
-      border-radius: 20px;
-      padding: 25px 30px;
+      border-radius: 18px;
       box-shadow: 0 1px 2px rgba(23,27,34,.05);
-      margin-bottom: 20px;
     }
-    .poll-area h2 {
-      font-size: 24px;
-      margin-bottom: 15px;
-      font-weight: 700;
-    }
-    .timer {
-      font-weight: 700;
-      color: var(--pink);
-      font-size: 18px;
-      margin-bottom: 12px;
-    }
-    .bars {
+
+    .poll-area {
+      min-height: 0;
+      padding: 18px 22px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
-      margin-bottom: 10px;
     }
-    .bar-row {
+
+    .placeholder {
+      flex: 1;
       display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: var(--dim);
+      font-size: 20px;
+      line-height: 1.35;
+    }
+
+    .question-content {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    .question-head {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 12px;
+    }
+
+    .question-head h2 {
+      font-size: clamp(20px, 2.4vw, 30px);
+      line-height: 1.18;
+      font-weight: 800;
+    }
+
+    .timer {
+      min-width: 110px;
+      text-align: center;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px 12px;
+      color: var(--pink);
+      font-size: 24px;
+      font-weight: 800;
+    }
+
+    .timer-label {
+      display: block;
+      color: var(--dim);
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .bars {
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      justify-content: center;
+    }
+
+    .bar-row {
+      display: grid;
+      grid-template-columns: minmax(260px, 42%) 1fr 58px;
       align-items: center;
       gap: 12px;
     }
+
     .bar-label {
-      width: 120px;
-      font-weight: 500;
-      font-size: 15px;
-      flex-shrink: 0;
+      font-size: clamp(14px, 1.5vw, 18px);
+      line-height: 1.25;
+      font-weight: 650;
+      overflow-wrap: anywhere;
     }
+
+    .bar-label.correct-label {
+      color: var(--green);
+      font-weight: 800;
+    }
+
     .bar-track {
-      flex: 1;
       height: 28px;
       background: #f0ede8;
-      border-radius: 14px;
+      border-radius: 999px;
       overflow: hidden;
-      position: relative;
     }
+
     .bar-fill {
       height: 100%;
-      background: var(--pink);
-      border-radius: 14px;
-      transition: width .3s;
       width: 0%;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      padding-right: 8px;
-      color: #fff;
-      font-weight: 600;
-      font-size: 13px;
+      background: var(--pink);
+      border-radius: 999px;
+      transition: width .25s;
     }
+
     .bar-fill.correct {
       background: var(--green);
     }
-    .total {
-      font-size: 14px;
-      color: var(--dim);
-      margin-top: 5px;
-    }
 
-    /* QR */
-    .qr-block {
-      background: var(--card);
-      border-radius: 20px;
-      padding: 15px;
-      text-align: center;
-      box-shadow: 0 1px 2px rgba(23,27,34,.05);
-      margin-bottom: 20px;
-    }
-    .qr-block .qr-label {
-      font-family: var(--mono);
-      font-size: 11px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--pink);
-      margin-bottom: 8px;
-    }
-
-    /* Кнопки */
-    .controls {
+    .bar-count {
+      height: 28px;
+      min-width: 48px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: #f0ede8;
+      color: var(--ink);
       display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+      align-items: center;
       justify-content: center;
-      margin-top: 5px;
-    }
-    .controls button {
-      padding: 10px 24px;
-      border: none;
-      border-radius: 10px;
-      background: var(--pink);
-      color: #fff;
-      font-weight: 600;
-      cursor: pointer;
-      font-family: inherit;
-      font-size: 15px;
-      transition: background .2s;
-    }
-    .controls button:hover { background: #c2185b; }
-    .controls button.secondary { background: #ddd; color: #333; }
-    .controls button.secondary:hover { background: #ccc; }
-    .controls button.danger { background: #c0392b; }
-    .controls button.danger:hover { background: #a93226; }
-    .controls button:disabled {
-      opacity: 0.5;
-      cursor: default;
-      pointer-events: none;
+      font-weight: 800;
+      font-size: 14px;
     }
 
-    /* Блок результатов (топ‑10) */
-    .results {
-      background: var(--card);
-      border-radius: 20px;
-      padding: 25px 30px;
-      box-shadow: 0 1px 2px rgba(23,27,34,.05);
-      margin-top: 10px;
+    .total {
+      margin-top: 12px;
+      color: var(--dim);
+      font-size: 14px;
     }
-    .results h2 {
-      font-size: 22px;
-      font-weight: 700;
-      margin-bottom: 15px;
-      text-align: center;
-    }
-    .lb-row {
+
+    .side {
+      padding: 14px;
       display: flex;
+      flex-direction: column;
+      align-items: center;
       justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid var(--line);
-      font-size: 16px;
+      gap: 12px;
+      min-height: 0;
     }
-    .lb-row:last-child { border-bottom: none; }
-    .lb-rank { font-weight: 700; color: var(--dim); width: 40px; }
-    .lb-name { flex: 1; }
-    .lb-score { font-weight: 700; color: var(--pink); }
 
-    /* Сжатие текста – убрано, даём ширину */
-    .wrap { max-width: 900px; margin: 0 auto; width: 100%; }
-    .footer-text {
+    .qr-label {
       font-family: var(--mono);
       font-size: 10px;
-      color: #98a0ab;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+      color: var(--pink);
       text-align: center;
-      margin-top: 15px;
+      line-height: 1.4;
+    }
+
+    #qrcode {
+      background: #fff;
+      padding: 8px;
+      border-radius: 12px;
+    }
+
+    .controls {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      background: var(--pink);
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button.secondary {
+      background: #ddd;
+      color: #333;
+    }
+
+    button.danger {
+      background: var(--red);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: default;
+    }
+
+    .results {
+      padding: 18px 22px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    .results h2 {
+      font-size: 24px;
+      margin-bottom: 12px;
+      text-align: center;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 44px 1fr 70px;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 7px 0;
+      font-size: 16px;
+    }
+
+    .lb-row:last-child {
+      border-bottom: none;
+    }
+
+    .lb-rank {
+      color: var(--dim);
+      font-weight: 800;
+    }
+
+    .lb-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-score {
+      text-align: right;
+      color: var(--pink);
+      font-weight: 800;
+    }
+
+    .footer {
+      text-align: center;
+      color: #98a0ab;
+      font-family: var(--mono);
+      font-size: 10px;
+    }
+
+    @media (max-width: 800px) {
+      .main-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .side {
+        display: none;
+      }
+
+      .bar-row {
+        grid-template-columns: minmax(180px, 45%) 1fr 50px;
+      }
     }
   </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="top">ИИ для аудиторов · квиз</div>
-  <div class="header">
-    <h1>Ведущий</h1>
-    <div class="status" id="status">Ожидание старта</div>
-  </div>
-
-  <!-- Блок вопроса -->
-  <div id="pollDisplay" class="poll-area">
-    <div id="questionPlaceholder" style="text-align:center;padding:30px 0;color:var(--dim);font-size:18px;">
-      Нажмите «Старт» для начала квиза
+  <div>
+    <div class="topline">
+      <div class="brand">ИИ для аудиторов · квиз</div>
+      <div class="status" id="status">Ожидание старта</div>
     </div>
-    <div id="questionContent" class="hidden">
-      <h2 id="questionText"></h2>
-      <div class="timer">⏱️ <span id="timerSec">15</span> сек</div>
-      <div class="bars" id="barsContainer"></div>
-      <div class="total">Всего голосов: <span id="totalVotes">0</span></div>
+    <div class="header">
+      <h1>Ведущий</h1>
     </div>
   </div>
 
-  <!-- QR -->
-  <div class="qr-block">
-    <div class="qr-label">Сканируйте для голосования</div>
-    <div id="qrcode" style="display:inline-block;background:#fff;padding:8px;border-radius:12px;"></div>
+  <div id="mainGrid" class="main-grid">
+    <div id="pollDisplay" class="poll-area">
+      <div id="questionPlaceholder" class="placeholder">
+        Нажмите «Старт» для начала квиза
+      </div>
+
+      <div id="questionContent" class="question-content hidden">
+        <div class="question-head">
+          <h2 id="questionText"></h2>
+          <div class="timer">
+            <span class="timer-label">секунд</span>
+            <span id="timerSec">15</span>
+          </div>
+        </div>
+
+        <div class="bars" id="barsContainer"></div>
+
+        <div class="total">
+          Всего голосов: <span id="totalVotes">0</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="qr-label">Сканируйте для голосования</div>
+      <div id="qrcode"></div>
+
+      <div class="controls">
+        <button id="startBtn">Старт</button>
+        <button id="resultsBtn" class="secondary" disabled>Результаты</button>
+        <button id="resetBtn" class="danger">Сброс</button>
+      </div>
+    </div>
+
+    <div id="resultsBlock" class="results hidden">
+      <h2>Результаты</h2>
+      <div id="resultsList"></div>
+    </div>
   </div>
 
-  <!-- Кнопки -->
-  <div class="controls">
-    <button id="startBtn">▶ Старт</button>
-    <button id="resetBtn" class="danger">🔄 Сброс</button>
-  </div>
-
-  <!-- Блок результатов (скрыт до конца) -->
-  <div id="resultsBlock" class="results hidden">
-    <h2>🏆 Результаты</h2>
-    <div id="resultsList"></div>
-  </div>
-
-  <div class="footer-text">квиз · все данные анонимны</div>
+  <div class="footer">квиз · все данные анонимны</div>
 </div>
 
 <script src="config.js"></script>
@@ -258,7 +411,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-// ===== ВОПРОСЫ =====
 const QUESTIONS = {
   q1: {
     q: 'Что может утечь при использовании внешней модели по API?',
@@ -277,19 +429,19 @@ const QUESTIONS = {
     options: [
       '«Проверь договор аренды»',
       '«Найди риски для арендатора»',
-      '«Проверь по чек‑листу: индексация, разрыв, штрафы, субаренда. Дай цитату, риск и оценку»'
+      '«Проверь по чек-листу: индексация, разрыв, штрафы, субаренда. Дай цитату, риск и оценку»'
     ],
     correct: 2,
     time: 15
   },
   q4: {
-    q: 'Какой из перечисленных инструментов Яндекса представляет собой веб‑агента без установки (работает с Календарём, Трекером, Вики, Почтой)?',
+    q: 'Какой из перечисленных инструментов Яндекса представляет собой веб-агента без установки?',
     options: ['Стефания', 'MARS', 'Гена (GENA)', 'Клешня Алисы Про'],
     correct: 3,
     time: 15
   },
   q5: {
-    q: 'Что такое MCP в контексте AI‑агентов?',
+    q: 'Что такое MCP в контексте AI-агентов?',
     options: [
       'метод машинного обучения',
       'стандарт подключения модели к сервисам («розетка» для инструментов)',
@@ -318,17 +470,17 @@ const QUESTIONS = {
   }
 };
 
-// ===== FIREBASE =====
 const cfg = window.QUIZ_CONFIG || {};
 if (!cfg.firebase) {
   document.body.innerHTML = '<h1>Ошибка: нет config.js</h1>';
   throw new Error('config missing');
 }
+
 firebase.initializeApp(cfg.firebase);
 const db = firebase.database();
 
-// ===== QR =====
 const voteUrl = cfg.voteUrl || 'https://Silama-las.github.io/ai-audit-training/vote-ai-audit-training.html';
+
 if (typeof QRCode !== 'undefined') {
   new QRCode(document.getElementById("qrcode"), {
     text: voteUrl,
@@ -337,10 +489,10 @@ if (typeof QRCode !== 'undefined') {
   });
 }
 
-// ===== DOM =====
 const statusDiv = document.getElementById('status');
 const startBtn = document.getElementById('startBtn');
 const resetBtn = document.getElementById('resetBtn');
+const resultsBtn = document.getElementById('resultsBtn');
 const questionPlaceholder = document.getElementById('questionPlaceholder');
 const questionContent = document.getElementById('questionContent');
 const questionText = document.getElementById('questionText');
@@ -349,157 +501,206 @@ const barsContainer = document.getElementById('barsContainer');
 const totalVotesSpan = document.getElementById('totalVotes');
 const resultsBlock = document.getElementById('resultsBlock');
 const resultsList = document.getElementById('resultsList');
+const pollDisplay = document.getElementById('pollDisplay');
 
 const questionOrder = ['q1','q2','q3','q4','q5','q6','q7'];
-let currentIndex = -1;          // индекс текущего вопроса (-1 = не начат)
-let timerInterval = null;
-let revealTimeout = null;       // для паузы после показа ответа
-let isQuizFinished = false;
-let isPaused = false;           // пауза между вопросами
 
-// ===== ФУНКЦИИ =====
+let currentIndex = -1;
+let timerInterval = null;
+let revealTimeout = null;
+let currentQid = null;
+let quizFinished = false;
+
+async function setIdleState() {
+  await db.ref('state').update({
+    currentPoll: null,
+    quizStatus: 'idle',
+    showResults: false
+  });
+}
+
+async function startQuiz() {
+  if (currentIndex !== -1 && !quizFinished) return;
+
+  resultsBlock.classList.add('hidden');
+  pollDisplay.classList.remove('hidden');
+  resultsBtn.disabled = true;
+  startBtn.disabled = true;
+
+  await db.ref('responses').set(null);
+  await db.ref('state').update({
+    quizStatus: 'running',
+    showResults: false,
+    session: Date.now()
+  });
+
+  quizFinished = false;
+  currentIndex = 0;
+  showQuestion(currentIndex);
+}
+
 function showQuestion(index) {
   if (index >= questionOrder.length) {
     finishQuiz();
     return;
   }
+
   const qid = questionOrder[index];
   const qData = QUESTIONS[qid];
-  if (!qData) return;
 
-  // Очищаем таймеры
+  currentQid = qid;
+
   if (timerInterval) clearInterval(timerInterval);
   if (revealTimeout) clearTimeout(revealTimeout);
 
-  // Обновляем UI
   questionPlaceholder.classList.add('hidden');
   questionContent.classList.remove('hidden');
+  resultsBlock.classList.add('hidden');
+  pollDisplay.classList.remove('hidden');
+
   questionText.textContent = qData.q;
   timerSec.textContent = qData.time;
+  totalVotesSpan.textContent = '0';
 
-  // Столбики
   barsContainer.innerHTML = '';
+
   qData.options.forEach((opt, i) => {
     const row = document.createElement('div');
     row.className = 'bar-row';
     row.innerHTML = `
-      <div class="bar-label">${esc(opt)}</div>
+      <div class="bar-label" id="label-${qid}-${i}">${esc(opt)}</div>
       <div class="bar-track">
-        <div class="bar-fill" id="bar-${qid}-${i}" style="width:0%;">0</div>
+        <div class="bar-fill" id="bar-${qid}-${i}"></div>
       </div>
+      <div class="bar-count" id="count-${qid}-${i}">0</div>
     `;
     barsContainer.appendChild(row);
   });
 
-  // Обновляем голоса
-  updateBars(qid);
-
-  // Пишем в Firebase текущий вопрос
   db.ref('state/currentPoll').set({
     id: qid,
     q: qData.q,
     options: qData.options,
-    correct: qData.correct
+    correct: qData.correct,
+    time: qData.time,
+    index: index,
+    total: questionOrder.length,
+    status: 'active',
+    startedAt: firebase.database.ServerValue.TIMESTAMP
   });
 
-  statusDiv.textContent = `Вопрос ${index+1} из ${questionOrder.length}`;
+  statusDiv.textContent = `Вопрос ${index + 1} из ${questionOrder.length}`;
 
-  // Запускаем таймер
+  updateBars(qid);
+
   let remaining = qData.time;
-  timerInterval = setInterval(() => {
+
+  timerInterval = setInterval(async () => {
     remaining--;
     timerSec.textContent = remaining;
+
     if (remaining <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
-      // Показываем правильный ответ
+
+      await db.ref('state/currentPoll').update({
+        status: 'revealed'
+      });
+
       revealCorrect(qid);
-      // Через 2.5 сек переходим к следующему
+
       revealTimeout = setTimeout(() => {
-        revealTimeout = null;
-        // Переход к следующему вопросу
         currentIndex++;
         showQuestion(currentIndex);
       }, 2500);
     }
   }, 1000);
-
-  // Сохраняем текущий qid для обновлений
-  window._currentQid = qid;
 }
 
 function revealCorrect(qid) {
   const qData = QUESTIONS[qid];
   if (!qData) return;
+
   const correctIdx = qData.correct;
+
   const bar = document.getElementById(`bar-${qid}-${correctIdx}`);
-  if (bar) {
-    bar.classList.add('correct');
-    // Также выделим текст варианта? Добавим класс к bar-label? Можно отдельно, но у нас только столбик.
-    // По желанию можно добавить зелёную рамку вокруг варианта, но в задании сказано выделить именно текст ответа.
-    // Сделаем: найдём родительский .bar-row и добавим класс к .bar-label
-    const row = bar.closest('.bar-row');
-    if (row) {
-      const label = row.querySelector('.bar-label');
-      if (label) {
-        label.style.color = 'var(--green)';
-        label.style.fontWeight = '700';
-      }
-    }
-  }
-  statusDiv.textContent = `✅ Правильный ответ: ${qData.options[correctIdx]}`;
+  const label = document.getElementById(`label-${qid}-${correctIdx}`);
+
+  if (bar) bar.classList.add('correct');
+  if (label) label.classList.add('correct-label');
+
+  statusDiv.textContent = `Вопрос ${currentIndex + 1} из ${questionOrder.length}`;
 }
 
 function updateBars(qid) {
   const qData = QUESTIONS[qid];
   if (!qData) return;
+
   const counts = new Array(qData.options.length).fill(0);
+
   db.ref('responses/' + qid).once('value', (snap) => {
     const data = snap.val();
+
     if (data) {
       Object.values(data).forEach(resp => {
-        const idx = resp.answer;
+        const idx = Number(resp.answer);
         if (idx >= 0 && idx < counts.length) counts[idx]++;
       });
     }
-    const total = counts.reduce((a,b) => a + b, 0);
-    document.getElementById('totalVotes').textContent = total;
+
+    const total = counts.reduce((a, b) => a + b, 0);
+    totalVotesSpan.textContent = total;
+
     qData.options.forEach((opt, i) => {
       const bar = document.getElementById(`bar-${qid}-${i}`);
+      const count = document.getElementById(`count-${qid}-${i}`);
+
       if (bar) {
         const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
         bar.style.width = pct + '%';
-        bar.textContent = counts[i] > 0 ? counts[i] : '';
+      }
+
+      if (count) {
+        count.textContent = counts[i];
       }
     });
   });
 }
 
-function finishQuiz() {
-  // Убираем currentPoll
-  db.ref('state/currentPoll').set(null);
+async function finishQuiz() {
+  if (timerInterval) clearInterval(timerInterval);
+  if (revealTimeout) clearTimeout(revealTimeout);
+
+  currentQid = null;
+  quizFinished = true;
+
+  await db.ref('state').update({
+    currentPoll: null,
+    quizStatus: 'finished'
+  });
+
   questionContent.classList.add('hidden');
   questionPlaceholder.classList.remove('hidden');
-  questionPlaceholder.textContent = 'Квиз завершён! Спасибо всем участникам.';
-  statusDiv.textContent = 'Завершено';
-  startBtn.disabled = true;
-  isQuizFinished = true;
+  questionPlaceholder.textContent = 'Квиз завершён. Нажмите «Результаты», чтобы показать топ-10.';
+  statusDiv.textContent = 'Квиз завершён';
 
-  // Показываем топ‑10
-  showResults();
+  resultsBtn.disabled = false;
 }
 
 async function showResults() {
-  // Собираем баллы
   const scores = {};
+
   for (const qid of questionOrder) {
     const qData = QUESTIONS[qid];
     const snap = await db.ref('responses/' + qid).once('value');
     const data = snap.val();
+
     if (!data) continue;
+
     Object.entries(data).forEach(([userName, resp]) => {
-      if (resp.answer === qData.correct) {
-        scores[userName] = (scores[userName] || 0) + 1;
+      if (!scores[userName]) scores[userName] = 0;
+      if (Number(resp.answer) === qData.correct) {
+        scores[userName]++;
       }
     });
   }
@@ -508,82 +709,79 @@ async function showResults() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
+  pollDisplay.classList.add('hidden');
   resultsBlock.classList.remove('hidden');
+  statusDiv.textContent = 'Результаты';
+
+  await db.ref('state').update({
+    showResults: true
+  });
+
   if (sorted.length === 0) {
-    resultsList.innerHTML = '<div style="padding:10px 0;color:var(--dim);">Нет участников</div>';
+    resultsList.innerHTML = '<div style="text-align:center;color:var(--dim);padding:12px;">Нет участников</div>';
     return;
   }
 
-  let html = '';
-  sorted.forEach(([name, score], idx) => {
-    const rank = idx + 1;
-    html += `
-      <div class="lb-row">
-        <span class="lb-rank">${rank}</span>
-        <span class="lb-name">${esc(name)}</span>
-        <span class="lb-score">${score}</span>
-      </div>
-    `;
-  });
-  resultsList.innerHTML = html;
+  resultsList.innerHTML = sorted.map(([name, score], idx) => `
+    <div class="lb-row">
+      <div class="lb-rank">${idx + 1}</div>
+      <div class="lb-name">${esc(name)}</div>
+      <div class="lb-score">${score}</div>
+    </div>
+  `).join('');
 }
 
-function resetAll() {
+async function resetAll() {
   if (!confirm('Сбросить все данные и начать заново?')) return;
-  // Очищаем Firebase
-  db.ref('responses').set(null);
-  db.ref('polls').set(null);
-  db.ref('state/session').set(Date.now());
-  db.ref('state/currentPoll').set(null);
 
-  // Сброс UI
   if (timerInterval) clearInterval(timerInterval);
   if (revealTimeout) clearTimeout(revealTimeout);
+
+  await db.ref('responses').set(null);
+  await db.ref('state').set({
+    session: Date.now(),
+    quizStatus: 'idle',
+    currentPoll: null,
+    showResults: false
+  });
+
   currentIndex = -1;
-  isQuizFinished = false;
+  currentQid = null;
+  quizFinished = false;
+
   startBtn.disabled = false;
+  resultsBtn.disabled = true;
+
   questionContent.classList.add('hidden');
   questionPlaceholder.classList.remove('hidden');
   questionPlaceholder.textContent = 'Нажмите «Старт» для начала квиза';
+
+  pollDisplay.classList.remove('hidden');
   resultsBlock.classList.add('hidden');
   resultsList.innerHTML = '';
+
   statusDiv.textContent = 'Ожидание старта';
-  document.querySelectorAll('.bar-fill').forEach(el => el.classList.remove('correct'));
-  // Сброс стилей label
-  document.querySelectorAll('.bar-label').forEach(el => {
-    el.style.color = '';
-    el.style.fontWeight = '';
-  });
 }
 
-function startQuiz() {
-  if (isQuizFinished) return;
-  if (currentIndex !== -1) return; // уже идёт
-  currentIndex = 0;
-  showQuestion(0);
-  startBtn.disabled = true;
-  statusDiv.textContent = 'Квиз запущен';
-}
-
-// ===== ОБРАБОТЧИКИ =====
 startBtn.addEventListener('click', startQuiz);
 resetBtn.addEventListener('click', resetAll);
+resultsBtn.addEventListener('click', showResults);
 
-// ===== ПОДПИСКИ НА ОБНОВЛЕНИЕ ГОЛОСОВ =====
-db.ref('responses').on('child_added', () => {
-  if (window._currentQid) updateBars(window._currentQid);
-});
-db.ref('responses').on('child_changed', () => {
-  if (window._currentQid) updateBars(window._currentQid);
-});
-db.ref('responses').on('child_removed', () => {
-  if (window._currentQid) updateBars(window._currentQid);
+db.ref('responses').on('value', () => {
+  if (currentQid) updateBars(currentQid);
 });
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ =====
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;'
+  }[c]));
+}
 
-// Инициализация
+setIdleState();
+
 questionPlaceholder.classList.remove('hidden');
 questionContent.classList.add('hidden');
 resultsBlock.classList.add('hidden');
