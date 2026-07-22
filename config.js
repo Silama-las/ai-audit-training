@@ -2,7 +2,7 @@ window.QUIZ_CONFIG = {
   firebase: {
     apiKey: "AIzaSyBZZyr87OwSFOCo49T4bRco-T1IK3pJp58",
     authDomain: "ai-audit-training.firebaseapp.com",
-    databaseURL: "https://ai-audit-training-default-rtdb.firebaseio.com/", 
+    databaseURL: "https://ai-audit-training-default-rtdb.firebaseio.com/",
     projectId: "ai-audit-training",
     storageBucket: "ai-audit-training.firebasestorage.app",
     messagingSenderId: "785567934867",
