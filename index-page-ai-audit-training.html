@@ -5,86 +5,252 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ведущий квиз</title>
   <style>
-    /* === Дизайн от коллеги === */
-    :root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#171b22;--dim:#5d6673;
-      --blue:#2049c7;--green:#187a52;
-      --mono:'JetBrains Mono',ui-monospace,Consolas,monospace}
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{min-height:100vh;background:var(--bg);color:var(--ink);
-      font-family:'Inter',system-ui,-apple-system,sans-serif;
-      padding:30px;display:flex;flex-direction:column}
-    .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
-    .header h1{font-size:28px}
-    .poll-area{background:var(--card);border-radius:20px;padding:30px;box-shadow:0 1px 2px rgba(23,27,34,.05);margin-bottom:30px}
-    .poll-area h2{font-size:26px;margin-bottom:20px}
-    .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
-    .bar-row{display:flex;align-items:center;gap:12px}
-    .bar-label{width:120px;font-weight:500}
-    .bar-track{flex:1;height:32px;background:#f0ede8;border-radius:16px;overflow:hidden;position:relative}
-    .bar-fill{height:100%;background:var(--blue);border-radius:16px;transition:width .3s;width:0%;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-weight:600;font-size:14px}
-    .bar-fill.correct{background:var(--green)}
-    .total{font-size:14px;color:var(--dim);margin-bottom:10px}
-    .leaderboard{background:var(--card);border-radius:20px;padding:25px;box-shadow:0 1px 2px rgba(23,27,34,.05);max-height:420px;overflow-y:auto}
-    .leaderboard h3{font-size:20px;margin-bottom:15px}
-    .lb-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
-    .lb-row:last-child{border-bottom:none}
-    .lb-rank{font-weight:700;color:var(--dim);width:40px}
-    .lb-name{flex:1}
-    .lb-score{font-weight:700;color:var(--blue)}
-    .controls{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap}
-    .controls button{padding:10px 20px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer;font-family:inherit}
-    .controls button.secondary{background:#ddd;color:#333}
-    .controls button.danger{background:#c0392b}
-    .status{font-size:14px;color:var(--dim);margin-top:10px}
-    .hidden{display:none}
-    .timer{font-weight:700;color:var(--blue);font-size:20px}
-    .qr-block{background:var(--card);border-radius:20px;padding:20px;margin-top:20px;text-align:center;box-shadow:0 1px 2px rgba(23,27,34,.05)}
-    .qr-block .qr-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
-    .top{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:20px}
-    .foot{margin-top:auto;padding-top:30px;font-family:var(--mono);font-size:11px;color:#98a0ab;text-align:center}
+    /* === Розовая цветовая гамма === */
+    :root {
+      --bg: #f6f4ee;
+      --card: #ffffff;
+      --line: #e2ddd0;
+      --ink: #171b22;
+      --dim: #5d6673;
+      --pink: #e91e63;       /* основной розовый */
+      --green: #2e7d32;
+      --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      padding: 20px 25px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .hidden { display: none !important; }
+
+    /* Шапка */
+    .top {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--pink);
+      margin-bottom: 10px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+    .header h1 {
+      font-size: 26px;
+      font-weight: 800;
+    }
+    .status {
+      font-size: 14px;
+      color: var(--dim);
+    }
+
+    /* Блок вопроса */
+    .poll-area {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 25px 30px;
+      box-shadow: 0 1px 2px rgba(23,27,34,.05);
+      margin-bottom: 20px;
+    }
+    .poll-area h2 {
+      font-size: 24px;
+      margin-bottom: 15px;
+      font-weight: 700;
+    }
+    .timer {
+      font-weight: 700;
+      color: var(--pink);
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
+    .bars {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .bar-label {
+      width: 120px;
+      font-weight: 500;
+      font-size: 15px;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      height: 28px;
+      background: #f0ede8;
+      border-radius: 14px;
+      overflow: hidden;
+      position: relative;
+    }
+    .bar-fill {
+      height: 100%;
+      background: var(--pink);
+      border-radius: 14px;
+      transition: width .3s;
+      width: 0%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      color: #fff;
+      font-weight: 600;
+      font-size: 13px;
+    }
+    .bar-fill.correct {
+      background: var(--green);
+    }
+    .total {
+      font-size: 14px;
+      color: var(--dim);
+      margin-top: 5px;
+    }
+
+    /* QR */
+    .qr-block {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 15px;
+      text-align: center;
+      box-shadow: 0 1px 2px rgba(23,27,34,.05);
+      margin-bottom: 20px;
+    }
+    .qr-block .qr-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: var(--pink);
+      margin-bottom: 8px;
+    }
+
+    /* Кнопки */
+    .controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 5px;
+    }
+    .controls button {
+      padding: 10px 24px;
+      border: none;
+      border-radius: 10px;
+      background: var(--pink);
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 15px;
+      transition: background .2s;
+    }
+    .controls button:hover { background: #c2185b; }
+    .controls button.secondary { background: #ddd; color: #333; }
+    .controls button.secondary:hover { background: #ccc; }
+    .controls button.danger { background: #c0392b; }
+    .controls button.danger:hover { background: #a93226; }
+    .controls button:disabled {
+      opacity: 0.5;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    /* Блок результатов (топ‑10) */
+    .results {
+      background: var(--card);
+      border-radius: 20px;
+      padding: 25px 30px;
+      box-shadow: 0 1px 2px rgba(23,27,34,.05);
+      margin-top: 10px;
+    }
+    .results h2 {
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 15px;
+      text-align: center;
+    }
+    .lb-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 16px;
+    }
+    .lb-row:last-child { border-bottom: none; }
+    .lb-rank { font-weight: 700; color: var(--dim); width: 40px; }
+    .lb-name { flex: 1; }
+    .lb-score { font-weight: 700; color: var(--pink); }
+
+    /* Сжатие текста – убрано, даём ширину */
+    .wrap { max-width: 900px; margin: 0 auto; width: 100%; }
+    .footer-text {
+      font-family: var(--mono);
+      font-size: 10px;
+      color: #98a0ab;
+      text-align: center;
+      margin-top: 15px;
+    }
   </style>
 </head>
 <body>
-<div class="top">ИИ для аудиторов · квиз · ведущий</div>
-
-<div class="header">
-  <h1>🎯 Квиз</h1>
-  <div class="status" id="status">Ожидание вопроса</div>
-</div>
-
-<div id="pollDisplay" class="poll-area">
-  <div id="questionPlaceholder" style="text-align:center;padding:40px;color:var(--dim);">
-    Нажмите «Следующий вопрос», чтобы начать
+<div class="wrap">
+  <div class="top">ИИ для аудиторов · квиз</div>
+  <div class="header">
+    <h1>Ведущий</h1>
+    <div class="status" id="status">Ожидание старта</div>
   </div>
-  <div id="questionContent" class="hidden">
-    <h2 id="questionText"></h2>
-    <div id="timerDisplay" class="timer">⏱️ <span id="timerSec">0</span> сек</div>
-    <div class="bars" id="barsContainer"></div>
-    <div class="total">Всего голосов: <span id="totalVotes">0</span></div>
+
+  <!-- Блок вопроса -->
+  <div id="pollDisplay" class="poll-area">
+    <div id="questionPlaceholder" style="text-align:center;padding:30px 0;color:var(--dim);font-size:18px;">
+      Нажмите «Старт» для начала квиза
+    </div>
+    <div id="questionContent" class="hidden">
+      <h2 id="questionText"></h2>
+      <div class="timer">⏱️ <span id="timerSec">15</span> сек</div>
+      <div class="bars" id="barsContainer"></div>
+      <div class="total">Всего голосов: <span id="totalVotes">0</span></div>
+    </div>
   </div>
-</div>
 
-<!-- QR-код -->
-<div class="qr-block">
-  <div class="qr-label">Сканируйте для голосования</div>
-  <div id="qrcode" style="display:inline-block;background:#fff;padding:10px;border-radius:12px;"></div>
-  <div style="margin-top:10px;font-size:14px;color:var(--dim);word-break:break-all;" id="qrUrlDisplay"></div>
-</div>
-
-<div class="leaderboard">
-  <h3>🏆 Топ‑10 участников</h3>
-  <div id="leaderboardList">
-    <div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>
+  <!-- QR -->
+  <div class="qr-block">
+    <div class="qr-label">Сканируйте для голосования</div>
+    <div id="qrcode" style="display:inline-block;background:#fff;padding:8px;border-radius:12px;"></div>
   </div>
-</div>
 
-<div class="controls">
-  <button id="nextBtn">➡️ Следующий вопрос</button>
-  <button id="resetBtn" class="danger">🔄 Сбросить все голоса</button>
-  <button id="manualBtn" class="secondary">👆 Ручной режим (M)</button>
-</div>
+  <!-- Кнопки -->
+  <div class="controls">
+    <button id="startBtn">▶ Старт</button>
+    <button id="resetBtn" class="danger">🔄 Сброс</button>
+  </div>
 
-<div class="foot">голос анонимный · один голос на вопрос</div>
+  <!-- Блок результатов (скрыт до конца) -->
+  <div id="resultsBlock" class="results hidden">
+    <h2>🏆 Результаты</h2>
+    <div id="resultsList"></div>
+  </div>
+
+  <div class="footer-text">квиз · все данные анонимны</div>
+</div>
 
 <script src="config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
@@ -92,19 +258,19 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
 <script>
-// ===== КОНФИГУРАЦИЯ ВОПРОСОВ (ваши 7 вопросов) =====
+// ===== ВОПРОСЫ =====
 const QUESTIONS = {
   q1: {
     q: 'Что может утечь при использовании внешней модели по API?',
     options: ['промпт и ответ в логах', 'данные для дообучения', 'всё вышеперечисленное'],
     correct: 2,
-    time: 20
+    time: 15
   },
   q2: {
     q: 'Что нельзя отправлять во внешние модели?',
     options: ['шаблоны договоров', 'обезличенные данные', 'персональные и финансовые данные'],
     correct: 2,
-    time: 20
+    time: 15
   },
   q3: {
     q: 'Какой промпт даст структурированный результат при проверке договора?',
@@ -114,13 +280,13 @@ const QUESTIONS = {
       '«Проверь по чек‑листу: индексация, разрыв, штрафы, субаренда. Дай цитату, риск и оценку»'
     ],
     correct: 2,
-    time: 20
+    time: 15
   },
   q4: {
     q: 'Какой из перечисленных инструментов Яндекса представляет собой веб‑агента без установки (работает с Календарём, Трекером, Вики, Почтой)?',
     options: ['Стефания', 'MARS', 'Гена (GENA)', 'Клешня Алисы Про'],
     correct: 3,
-    time: 20
+    time: 15
   },
   q5: {
     q: 'Что такое MCP в контексте AI‑агентов?',
@@ -131,7 +297,7 @@ const QUESTIONS = {
       'способ шифрования данных'
     ],
     correct: 1,
-    time: 20
+    time: 15
   },
   q6: {
     q: 'Что такое «промпт» в контексте работы языковых моделей?',
@@ -142,13 +308,13 @@ const QUESTIONS = {
       'тип нейросети'
     ],
     correct: 1,
-    time: 20
+    time: 15
   },
   q7: {
     q: 'Сколько уровней ИИ выделяется в рамках представленной классификации?',
     options: ['3', '4', '5', '6'],
     correct: 2,
-    time: 20
+    time: 15
   }
 };
 
@@ -161,51 +327,57 @@ if (!cfg.firebase) {
 firebase.initializeApp(cfg.firebase);
 const db = firebase.database();
 
-// ===== QR-код =====
-const voteUrl = cfg.voteUrl || window.location.href.replace('index-page-ai-audit-training.html','vote-ai-audit-training.html');
+// ===== QR =====
+const voteUrl = cfg.voteUrl || 'https://Silama-las.github.io/ai-audit-training/vote-ai-audit-training.html';
 if (typeof QRCode !== 'undefined') {
   new QRCode(document.getElementById("qrcode"), {
     text: voteUrl,
-    width: 200,
-    height: 200
+    width: 180,
+    height: 180
   });
-  document.getElementById('qrUrlDisplay').textContent = voteUrl;
-} else {
-  document.getElementById('qrcode').innerHTML = '⚠️ QR-библиотека не загружена';
 }
 
-// ===== СОСТОЯНИЕ =====
-let currentQuestionId = null;
-let questionOrder = ['q1','q2','q3','q4','q5','q6','q7'];
-let currentIndex = -1;
-let timerTimeout = null;
-let isAnsweredRevealed = false;
-
-// Ссылки на DOM
-const pollDisplay = document.getElementById('pollDisplay');
+// ===== DOM =====
+const statusDiv = document.getElementById('status');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
 const questionPlaceholder = document.getElementById('questionPlaceholder');
 const questionContent = document.getElementById('questionContent');
 const questionText = document.getElementById('questionText');
 const timerSec = document.getElementById('timerSec');
 const barsContainer = document.getElementById('barsContainer');
 const totalVotesSpan = document.getElementById('totalVotes');
-const leaderboardList = document.getElementById('leaderboardList');
-const statusDiv = document.getElementById('status');
+const resultsBlock = document.getElementById('resultsBlock');
+const resultsList = document.getElementById('resultsList');
 
-// ===== ОТОБРАЖЕНИЕ ТЕКУЩЕГО ВОПРОСА =====
-function showQuestion(questionId) {
-  if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
-  const qData = QUESTIONS[questionId];
+const questionOrder = ['q1','q2','q3','q4','q5','q6','q7'];
+let currentIndex = -1;          // индекс текущего вопроса (-1 = не начат)
+let timerInterval = null;
+let revealTimeout = null;       // для паузы после показа ответа
+let isQuizFinished = false;
+let isPaused = false;           // пауза между вопросами
+
+// ===== ФУНКЦИИ =====
+function showQuestion(index) {
+  if (index >= questionOrder.length) {
+    finishQuiz();
+    return;
+  }
+  const qid = questionOrder[index];
+  const qData = QUESTIONS[qid];
   if (!qData) return;
 
-  currentQuestionId = questionId;
-  isAnsweredRevealed = false;
+  // Очищаем таймеры
+  if (timerInterval) clearInterval(timerInterval);
+  if (revealTimeout) clearTimeout(revealTimeout);
 
+  // Обновляем UI
   questionPlaceholder.classList.add('hidden');
   questionContent.classList.remove('hidden');
   questionText.textContent = qData.q;
   timerSec.textContent = qData.time;
 
+  // Столбики
   barsContainer.innerHTML = '';
   qData.options.forEach((opt, i) => {
     const row = document.createElement('div');
@@ -213,58 +385,76 @@ function showQuestion(questionId) {
     row.innerHTML = `
       <div class="bar-label">${esc(opt)}</div>
       <div class="bar-track">
-        <div class="bar-fill" id="bar-${questionId}-${i}" style="width:0%;">0</div>
+        <div class="bar-fill" id="bar-${qid}-${i}" style="width:0%;">0</div>
       </div>
     `;
     barsContainer.appendChild(row);
   });
 
-  updateBars(questionId);
-  startTimer(questionId, qData.time);
+  // Обновляем голоса
+  updateBars(qid);
 
+  // Пишем в Firebase текущий вопрос
   db.ref('state/currentPoll').set({
-    id: questionId,
+    id: qid,
     q: qData.q,
     options: qData.options,
     correct: qData.correct
   });
 
-  statusDiv.textContent = `Вопрос ${questionId} активен`;
-}
+  statusDiv.textContent = `Вопрос ${index+1} из ${questionOrder.length}`;
 
-function startTimer(questionId, seconds) {
-  let remaining = seconds;
-  timerSec.textContent = remaining;
-
-  timerTimeout = setInterval(() => {
+  // Запускаем таймер
+  let remaining = qData.time;
+  timerInterval = setInterval(() => {
     remaining--;
     timerSec.textContent = remaining;
     if (remaining <= 0) {
-      clearInterval(timerTimeout);
-      timerTimeout = null;
-      revealCorrectAnswer(questionId);
+      clearInterval(timerInterval);
+      timerInterval = null;
+      // Показываем правильный ответ
+      revealCorrect(qid);
+      // Через 2.5 сек переходим к следующему
+      revealTimeout = setTimeout(() => {
+        revealTimeout = null;
+        // Переход к следующему вопросу
+        currentIndex++;
+        showQuestion(currentIndex);
+      }, 2500);
     }
   }, 1000);
+
+  // Сохраняем текущий qid для обновлений
+  window._currentQid = qid;
 }
 
-function revealCorrectAnswer(questionId) {
-  if (isAnsweredRevealed) return;
-  isAnsweredRevealed = true;
-  const qData = QUESTIONS[questionId];
+function revealCorrect(qid) {
+  const qData = QUESTIONS[qid];
   if (!qData) return;
   const correctIdx = qData.correct;
-  const correctBar = document.getElementById(`bar-${questionId}-${correctIdx}`);
-  if (correctBar) {
-    correctBar.classList.add('correct');
+  const bar = document.getElementById(`bar-${qid}-${correctIdx}`);
+  if (bar) {
+    bar.classList.add('correct');
+    // Также выделим текст варианта? Добавим класс к bar-label? Можно отдельно, но у нас только столбик.
+    // По желанию можно добавить зелёную рамку вокруг варианта, но в задании сказано выделить именно текст ответа.
+    // Сделаем: найдём родительский .bar-row и добавим класс к .bar-label
+    const row = bar.closest('.bar-row');
+    if (row) {
+      const label = row.querySelector('.bar-label');
+      if (label) {
+        label.style.color = 'var(--green)';
+        label.style.fontWeight = '700';
+      }
+    }
   }
   statusDiv.textContent = `✅ Правильный ответ: ${qData.options[correctIdx]}`;
 }
 
-function updateBars(questionId) {
-  const qData = QUESTIONS[questionId];
+function updateBars(qid) {
+  const qData = QUESTIONS[qid];
   if (!qData) return;
   const counts = new Array(qData.options.length).fill(0);
-  db.ref('responses/' + questionId).once('value', (snap) => {
+  db.ref('responses/' + qid).once('value', (snap) => {
     const data = snap.val();
     if (data) {
       Object.values(data).forEach(resp => {
@@ -275,23 +465,34 @@ function updateBars(questionId) {
     const total = counts.reduce((a,b) => a + b, 0);
     document.getElementById('totalVotes').textContent = total;
     qData.options.forEach((opt, i) => {
-      const bar = document.getElementById(`bar-${questionId}-${i}`);
+      const bar = document.getElementById(`bar-${qid}-${i}`);
       if (bar) {
         const pct = total > 0 ? Math.round((counts[i] / total) * 100) : 0;
         bar.style.width = pct + '%';
         bar.textContent = counts[i] > 0 ? counts[i] : '';
       }
     });
-    updateLeaderboard();
   });
 }
 
-// ===== РЕЙТИНГ (ТОП‑10) =====
-async function updateLeaderboard() {
-  const allQuestions = Object.keys(QUESTIONS);
-  const scores = {};
+function finishQuiz() {
+  // Убираем currentPoll
+  db.ref('state/currentPoll').set(null);
+  questionContent.classList.add('hidden');
+  questionPlaceholder.classList.remove('hidden');
+  questionPlaceholder.textContent = 'Квиз завершён! Спасибо всем участникам.';
+  statusDiv.textContent = 'Завершено';
+  startBtn.disabled = true;
+  isQuizFinished = true;
 
-  for (const qid of allQuestions) {
+  // Показываем топ‑10
+  showResults();
+}
+
+async function showResults() {
+  // Собираем баллы
+  const scores = {};
+  for (const qid of questionOrder) {
     const qData = QUESTIONS[qid];
     const snap = await db.ref('responses/' + qid).once('value');
     const data = snap.val();
@@ -307,116 +508,86 @@ async function updateLeaderboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
 
+  resultsBlock.classList.remove('hidden');
   if (sorted.length === 0) {
-    leaderboardList.innerHTML = `<div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>`;
+    resultsList.innerHTML = '<div style="padding:10px 0;color:var(--dim);">Нет участников</div>';
     return;
   }
 
   let html = '';
   sorted.forEach(([name, score], idx) => {
-    let medal;
-    if (idx === 0) medal = '🥇';
-    else if (idx === 1) medal = '🥈';
-    else if (idx === 2) medal = '🥉';
-    else medal = `${idx+1}.`;
+    const rank = idx + 1;
     html += `
       <div class="lb-row">
-        <span class="lb-rank">${medal}</span>
+        <span class="lb-rank">${rank}</span>
         <span class="lb-name">${esc(name)}</span>
-        <span class="lb-score">${score} балл${score>1?'а':''}</span>
+        <span class="lb-score">${score}</span>
       </div>
     `;
   });
-  leaderboardList.innerHTML = html;
-}
-
-// ===== УПРАВЛЕНИЕ =====
-function nextQuestion() {
-  if (currentIndex < questionOrder.length - 1) {
-    currentIndex++;
-    showQuestion(questionOrder[currentIndex]);
-  } else {
-    statusDiv.textContent = 'Все вопросы пройдены!';
-    questionContent.classList.add('hidden');
-    questionPlaceholder.classList.remove('hidden');
-    questionPlaceholder.innerHTML = '🎉 Квиз завершён! Спасибо всем участникам.';
-    db.ref('state/currentPoll').set(null);
-  }
+  resultsList.innerHTML = html;
 }
 
 function resetAll() {
-  if (confirm('Удалить все ответы участников?')) {
-    db.ref('responses').set(null);
-    db.ref('polls').set(null);
-    db.ref('state/session').set(Date.now());
-    statusDiv.textContent = 'Все данные сброшены';
-    currentIndex = -1;
-    questionContent.classList.add('hidden');
-    questionPlaceholder.classList.remove('hidden');
-    questionPlaceholder.innerHTML = 'Нажмите «Следующий вопрос», чтобы начать';
-    leaderboardList.innerHTML = '<div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>';
-    if (timerTimeout) clearTimeout(timerTimeout);
-  }
+  if (!confirm('Сбросить все данные и начать заново?')) return;
+  // Очищаем Firebase
+  db.ref('responses').set(null);
+  db.ref('polls').set(null);
+  db.ref('state/session').set(Date.now());
+  db.ref('state/currentPoll').set(null);
+
+  // Сброс UI
+  if (timerInterval) clearInterval(timerInterval);
+  if (revealTimeout) clearTimeout(revealTimeout);
+  currentIndex = -1;
+  isQuizFinished = false;
+  startBtn.disabled = false;
+  questionContent.classList.add('hidden');
+  questionPlaceholder.classList.remove('hidden');
+  questionPlaceholder.textContent = 'Нажмите «Старт» для начала квиза';
+  resultsBlock.classList.add('hidden');
+  resultsList.innerHTML = '';
+  statusDiv.textContent = 'Ожидание старта';
+  document.querySelectorAll('.bar-fill').forEach(el => el.classList.remove('correct'));
+  // Сброс стилей label
+  document.querySelectorAll('.bar-label').forEach(el => {
+    el.style.color = '';
+    el.style.fontWeight = '';
+  });
 }
 
-// ===== РУЧНОЙ РЕЖИМ =====
-let manualMode = false;
-document.getElementById('manualBtn').addEventListener('click', () => {
-  manualMode = !manualMode;
-  document.getElementById('manualBtn').style.background = manualMode ? 'var(--green)' : '#ddd';
-  statusDiv.textContent = manualMode ? 'Ручной режим: клик по столбику = голос' : 'Ожидание';
-});
-document.addEventListener('click', (e) => {
-  if (!manualMode) return;
-  const bar = e.target.closest('.bar-fill');
-  if (!bar) return;
-  const idMatch = bar.id.match(/bar-(q\d+)-(\d+)/);
-  if (!idMatch) return;
-  const qid = idMatch[1];
-  const idx = parseInt(idMatch[2]);
-  const qData = QUESTIONS[qid];
-  if (!qData) return;
-  const userName = 'Manual_' + Date.now();
-  db.ref('responses/' + qid + '/' + userName).set({
-    name: userName,
-    answer: idx,
-    timestamp: firebase.database.ServerValue.TIMESTAMP
-  }).then(() => {
-    updateBars(qid);
-  });
-});
+function startQuiz() {
+  if (isQuizFinished) return;
+  if (currentIndex !== -1) return; // уже идёт
+  currentIndex = 0;
+  showQuestion(0);
+  startBtn.disabled = true;
+  statusDiv.textContent = 'Квиз запущен';
+}
 
-document.getElementById('nextBtn').addEventListener('click', nextQuestion);
-document.getElementById('resetBtn').addEventListener('click', resetAll);
+// ===== ОБРАБОТЧИКИ =====
+startBtn.addEventListener('click', startQuiz);
+resetBtn.addEventListener('click', resetAll);
 
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-// ===== ПОДПИСКИ =====
+// ===== ПОДПИСКИ НА ОБНОВЛЕНИЕ ГОЛОСОВ =====
 db.ref('responses').on('child_added', () => {
-  if (currentQuestionId) updateBars(currentQuestionId);
+  if (window._currentQid) updateBars(window._currentQid);
 });
 db.ref('responses').on('child_changed', () => {
-  if (currentQuestionId) updateBars(currentQuestionId);
+  if (window._currentQid) updateBars(window._currentQid);
 });
 db.ref('responses').on('child_removed', () => {
-  if (currentQuestionId) updateBars(currentQuestionId);
+  if (window._currentQid) updateBars(window._currentQid);
 });
-db.ref('responses').on('value', () => {
-  updateLeaderboard();
-});
+
+// ===== ВСПОМОГАТЕЛЬНЫЕ =====
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
 // Инициализация
 questionPlaceholder.classList.remove('hidden');
 questionContent.classList.add('hidden');
-statusDiv.textContent = 'Готов к работе';
-
-// Горячие клавиши
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'ArrowRight') nextQuestion();
-  if (e.key === 'r' && currentQuestionId) revealCorrectAnswer(currentQuestionId);
-  if (e.key === 'm') document.getElementById('manualBtn').click();
-});
-
+resultsBlock.classList.add('hidden');
+statusDiv.textContent = 'Ожидание старта';
 </script>
 </body>
 </html>
