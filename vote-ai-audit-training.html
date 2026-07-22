@@ -13,320 +13,534 @@
       --dim: #5d6673;
       --pink: #e91e63;
       --green: #2e7d32;
+      --red: #c0392b;
       --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
     }
+
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
       -webkit-tap-highlight-color: transparent;
     }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
     body {
-      min-height: 100vh;
       background: var(--bg);
       color: var(--ink);
       font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      padding: 16px 14px;
+      padding: 12px;
+    }
+
+    .screen {
+      width: 100%;
+      max-width: 520px;
+      height: calc(100vh - 24px);
+      margin: 0 auto;
       display: flex;
       flex-direction: column;
       justify-content: center;
-      /* уменьшаем масштаб для мобильных */
-      font-size: 15px;
+      gap: 12px;
     }
+
     .top {
       font-family: var(--mono);
       font-size: 10px;
       letter-spacing: .18em;
       text-transform: uppercase;
       color: var(--pink);
-      margin-bottom: 12px;
       text-align: center;
     }
-    h1 {
-      font-size: 20px;
-      font-weight: 800;
-      line-height: 1.3;
-      margin-bottom: 16px;
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 16px;
+      box-shadow: 0 1px 2px rgba(23,27,34,.05);
     }
+
+    .name-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 18px;
+      font-family: inherit;
+      color: var(--ink);
+      background: var(--card);
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--pink);
+    }
+
+    button {
+      width: 100%;
+      border: none;
+      border-radius: 12px;
+      padding: 13px 14px;
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      background: var(--pink);
+      color: #fff;
+    }
+
+    button:disabled {
+      opacity: .55;
+      cursor: default;
+    }
+
+    .state {
+      text-align: center;
+      color: var(--dim);
+      font-size: 18px;
+      line-height: 1.45;
+    }
+
+    .state-title {
+      color: var(--ink);
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .score-pill {
+      align-self: center;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 14px;
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--pink);
+      box-shadow: 0 1px 2px rgba(23,27,34,.05);
+    }
+
+    .timer {
+      text-align: center;
+      color: var(--pink);
+      font-size: 20px;
+      font-weight: 900;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: clamp(18px, 5vw, 25px);
+      line-height: 1.18;
+      font-weight: 850;
+      margin-bottom: 12px;
+    }
+
     .opts {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 9px;
     }
+
     .opt {
       background: var(--card);
       border: 1px solid var(--line);
       border-radius: 12px;
-      padding: 14px 16px;
-      font-size: 15px;
-      font-weight: 600;
-      cursor: pointer;
+      padding: 12px 14px;
+      font-size: clamp(14px, 4vw, 17px);
+      line-height: 1.22;
+      font-weight: 700;
       color: var(--ink);
       text-align: left;
       box-shadow: 0 1px 2px rgba(23,27,34,.05);
-      transition: transform .12s, border-color .2s, background .2s;
-      font-family: inherit;
     }
-    .opt:active { transform: scale(.975); }
+
     .opt.sel {
       border-color: var(--pink);
       background: #fce4ec;
       box-shadow: 0 0 0 3px rgba(233,30,99,.12);
     }
-    .opt:disabled {
-      opacity: 0.5;
-      cursor: default;
-      transform: none;
-    }
+
     .opt.correct-answer {
       border-color: var(--green);
       background: #e8f5e9;
-      font-weight: 700;
+      color: var(--green);
+      font-weight: 900;
     }
-    .name-input {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-bottom: 20px;
+
+    .opt.wrong-answer {
+      border-color: var(--red);
+      background: #fdecea;
     }
-    .name-input input {
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      font-size: 18px;
-      font-family: inherit;
-      background: var(--card);
-      color: var(--ink);
-      width: 100%;
-    }
-    .name-input input:focus {
-      outline: none;
-      border-color: var(--pink);
-    }
-    .name-input button {
-      padding: 14px;
-      background: var(--pink);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 18px;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: inherit;
-      transition: background .2s;
-    }
-    .name-input button:active { background: #c2185b; }
-    .state {
+
+    .hint {
       text-align: center;
       color: var(--dim);
-      font-size: 16px;
-      line-height: 1.6;
-      padding: 30px 10px;
+      font-size: 13px;
+      line-height: 1.35;
     }
-    .state .big { font-size: 44px; margin-bottom: 12px; }
-    .state b { color: var(--green); }
-    .dot {
-      display: inline-block;
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--pink);
-      animation: blink 1.2s ease-in-out infinite;
-      margin: 0 3px;
-    }
-    .dot:nth-child(2) { animation-delay: .2s; }
-    .dot:nth-child(3) { animation-delay: .4s; }
-    @keyframes blink {
-      0%,100% { opacity: .2; }
-      50% { opacity: 1; }
-    }
-    .timer-info {
-      font-weight: 700;
-      color: var(--pink);
-      font-size: 16px;
-      margin-bottom: 10px;
+
+    .results-title {
+      font-size: 24px;
+      font-weight: 900;
       text-align: center;
+      margin-bottom: 10px;
     }
-    .hidden { display: none !important; }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 36px 1fr 50px;
+      gap: 8px;
+      align-items: center;
+      border-bottom: 1px solid var(--line);
+      padding: 7px 0;
+      font-size: 15px;
+    }
+
+    .lb-row:last-child {
+      border-bottom: none;
+    }
+
+    .lb-rank {
+      color: var(--dim);
+      font-weight: 900;
+    }
+
+    .lb-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .lb-score {
+      color: var(--pink);
+      font-weight: 900;
+      text-align: right;
+    }
   </style>
 </head>
 <body>
-<div class="top">ИИ для аудиторов · квиз</div>
-<div id="app"></div>
+<div class="screen">
+  <div class="top">ИИ для аудиторов · квиз</div>
+  <div id="app"></div>
+</div>
 
 <script src="config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+
 <script>
 const app = document.getElementById('app');
+
 const cfg = window.QUIZ_CONFIG || {};
 if (!cfg.firebase || !cfg.firebase.apiKey) {
-  app.innerHTML = `<div class="state"><div class="big">⚠️</div>Ошибка: нет config.js</div>`;
+  app.innerHTML = '<div class="card state"><div class="state-title">Ошибка</div>Нет config.js</div>';
   throw new Error('config missing');
 }
+
 firebase.initializeApp(cfg.firebase);
 const db = firebase.database();
 
-let myName = localStorage.getItem('quizUserName') || '';
-let currentPoll = null;
-let timerInterval = null;
-let isAnswered = false;
-let isCorrectRevealed = false;
+const QUESTION_ORDER = ['q1','q2','q3','q4','q5','q6','q7'];
 
-// === ВВОД ИМЕНИ ===
-function askName() {
-  return new Promise((resolve) => {
-    if (myName && myName.trim()) {
-      resolve(myName);
+const QUESTIONS_META = {
+  q1: { correct: 2 },
+  q2: { correct: 2 },
+  q3: { correct: 2 },
+  q4: { correct: 3 },
+  q5: { correct: 1 },
+  q6: { correct: 1 },
+  q7: { correct: 2 }
+};
+
+let myName = localStorage.getItem('quizUserName') || '';
+let currentPollId = null;
+let timerInterval = null;
+let selectedAnswer = null;
+let myScore = 0;
+let lastRenderedState = '';
+
+function showNameForm() {
+  app.innerHTML = `
+    <div class="card name-form">
+      <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${esc(myName)}" autofocus>
+      <button id="nameBtn">Продолжить</button>
+    </div>
+    <div class="hint">Ник нужен для итогового рейтинга</div>
+  `;
+
+  const input = document.getElementById('nameInput');
+  const btn = document.getElementById('nameBtn');
+
+  btn.addEventListener('click', () => {
+    const val = input.value.trim();
+
+    if (!val) {
+      alert('Пожалуйста, введите ник');
       return;
     }
-    app.innerHTML = `
-      <div class="name-input">
-        <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${myName}" autofocus>
-        <button id="nameBtn">Продолжить</button>
-      </div>
-      <div style="text-align:center;font-size:13px;color:var(--dim);">Это нужно для рейтинга</div>
-    `;
-    document.getElementById('nameBtn').addEventListener('click', () => {
-      const val = document.getElementById('nameInput').value.trim();
-      if (val) {
-        myName = val;
-        localStorage.setItem('quizUserName', myName);
-        resolve(myName);
-      } else {
-        alert('Пожалуйста, введите ник');
-      }
-    });
-    document.getElementById('nameInput').addEventListener('keydown', (e) => {
-      if (e.key === 'Enter') document.getElementById('nameBtn').click();
-    });
-    document.getElementById('nameInput').focus();
+
+    myName = val;
+    localStorage.setItem('quizUserName', myName);
+    showWaiting();
   });
+
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btn.click();
+  });
+
+  setTimeout(() => input.focus(), 100);
 }
 
-// === ПОДПИСКА НА ТЕКУЩИЙ ВОПРОС ===
-db.ref('state/currentPoll').on('value', async (snap) => {
-  const poll = snap.val();
-  if (!poll || !poll.id) {
-    currentPoll = null;
-    app.innerHTML = `<div class="state"><div class="big">⏳</div>Ожидание вопроса…</div>`;
-    return;
-  }
-  if (currentPoll && currentPoll.id === poll.id) return;
-  currentPoll = poll;
-
-  if (!myName) await askName();
-
-  // Проверяем, голосовал ли уже этот пользователь
-  const voteRef = db.ref('responses/' + poll.id + '/' + myName);
-  const snapshot = await voteRef.once('value');
-  if (snapshot.exists()) {
-    // Уже голосовал – показываем сообщение, но если вопрос ещё не завершён, покажем ответ?
-    // Мы будем показывать ответ, если он уже был раскрыт (correctRevealed)
-    // Но лучше просто показать "Вы уже ответили" и ждать следующего вопроса.
-    app.innerHTML = `<div class="state"><div class="big">✓</div><b>Вы уже ответили.</b><br>Ждём следующий вопрос.</div>`;
+function showWaiting(text = 'Ожидайте начала квиза') {
+  if (!myName) {
+    showNameForm();
     return;
   }
 
-  // Рендерим вопрос
-  renderPoll(poll);
-});
+  currentPollId = null;
+  selectedAnswer = null;
 
-function renderPoll(poll) {
-  isAnswered = false;
-  isCorrectRevealed = false;
   if (timerInterval) clearInterval(timerInterval);
 
-  // Показываем таймер (время берём из вопроса, но у нас его нет в poll? Добавим в QUESTIONS на клиенте)
-  // Но poll приходит от ведущего, там только q, options, correct, id. Время мы знаем из QUESTIONS.
-  // Получим время из конфига
-  const qData = window.QUESTIONS ? window.QUESTIONS[poll.id] : null;
-  const timeLimit = (qData && qData.time) ? qData.time : 15;
+  app.innerHTML = `
+    <div class="score-pill">Правильных ответов: ${myScore}</div>
+    <div class="card state">
+      <div class="state-title">${esc(text)}</div>
+      <div>Вопрос появится автоматически</div>
+    </div>
+  `;
+}
+
+function renderPoll(poll) {
+  if (!myName) {
+    showNameForm();
+    return;
+  }
+
+  if (currentPollId !== poll.id) {
+    selectedAnswer = null;
+  }
+
+  currentPollId = poll.id;
+
+  if (timerInterval) clearInterval(timerInterval);
+
+  const timeLimit = Number(poll.time || 15);
 
   app.innerHTML = `
-    <div class="timer-info">⏱️ <span id="timerVote">${timeLimit}</span> сек</div>
-    <h1>${esc(poll.q)}</h1>
-    <div class="opts">
-      ${poll.options.map((o, i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}
+    <div class="score-pill">Правильных ответов: ${myScore}</div>
+
+    <div class="card">
+      <div class="timer">Осталось: <span id="timerVote">${timeLimit}</span> сек</div>
+      <h1>${esc(poll.q)}</h1>
+
+      <div class="opts">
+        ${poll.options.map((o, i) => `
+          <button class="opt" data-i="${i}">${esc(o)}</button>
+        `).join('')}
+      </div>
     </div>
   `;
 
-  // Обработчики кликов
-  app.querySelectorAll('.opt').forEach(btn => {
-    btn.addEventListener('click', () => vote(poll.id, +btn.dataset.i, btn));
+  const buttons = app.querySelectorAll('.opt');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => vote(poll, Number(btn.dataset.i)));
   });
 
-  // Запускаем таймер, который по окончании покажет правильный ответ
+  checkExistingVote(poll);
+
   let remaining = timeLimit;
   const timerEl = document.getElementById('timerVote');
+
   timerInterval = setInterval(() => {
     remaining--;
-    if (timerEl) timerEl.textContent = remaining;
+    if (timerEl) timerEl.textContent = Math.max(remaining, 0);
+
     if (remaining <= 0) {
       clearInterval(timerInterval);
       timerInterval = null;
-      // Показываем правильный ответ на стороне участника
-      revealCorrectToUser(poll);
     }
   }, 1000);
 }
 
-function revealCorrectToUser(poll) {
-  if (isCorrectRevealed) return;
-  isCorrectRevealed = true;
-  const correctIdx = poll.correct;
-  const allOpts = app.querySelectorAll('.opt');
-  allOpts.forEach((btn, i) => {
-    btn.disabled = true;
-    if (i === correctIdx) {
-      btn.classList.add('correct-answer');
-    }
-  });
-  // Дополнительно покажем сообщение
-  // Но можно просто подсветить.
+async function checkExistingVote(poll) {
+  const voteRef = db.ref('responses/' + poll.id + '/' + safeKey(myName));
+  const snap = await voteRef.once('value');
+
+  if (snap.exists()) {
+    const data = snap.val();
+    selectedAnswer = Number(data.answer);
+
+    const btn = app.querySelector(`.opt[data-i="${selectedAnswer}"]`);
+    if (btn) btn.classList.add('sel');
+
+    app.querySelectorAll('.opt').forEach(b => b.disabled = true);
+  }
+
+  if (poll.status === 'revealed') {
+    revealCorrectToUser(poll);
+  }
 }
 
-async function vote(questionId, answerIndex, btn) {
-  if (isAnswered) return;
+async function vote(poll, answerIndex) {
   if (!myName) return;
-  // Блокируем все кнопки
-  app.querySelectorAll('.opt').forEach(b => b.disabled = true);
-  btn.classList.add('sel');
-  isAnswered = true;
+  if (selectedAnswer !== null) return;
+  if (poll.status !== 'active') return;
+
+  selectedAnswer = answerIndex;
+
+  const buttons = app.querySelectorAll('.opt');
+  buttons.forEach(b => b.disabled = true);
+
+  const selectedBtn = app.querySelector(`.opt[data-i="${answerIndex}"]`);
+  if (selectedBtn) selectedBtn.classList.add('sel');
 
   try {
-    await db.ref('responses/' + questionId + '/' + myName).set({
+    await db.ref('responses/' + poll.id + '/' + safeKey(myName)).set({
       name: myName,
       answer: answerIndex,
       timestamp: firebase.database.ServerValue.TIMESTAMP
     });
-    // Показываем спасибо, но не перекрываем вопрос – можно оставить как есть, кнопки заблокированы.
-    // Вместо этого покажем текст "Голос принят" в таймере или сверху.
-    const timerEl = document.getElementById('timerVote');
-    if (timerEl) timerEl.textContent = '✅';
   } catch(e) {
     alert('Ошибка, попробуйте ещё раз');
-    app.querySelectorAll('.opt').forEach(b => b.disabled = false);
-    btn.classList.remove('sel');
-    isAnswered = false;
+    selectedAnswer = null;
+    buttons.forEach(b => b.disabled = false);
+    if (selectedBtn) selectedBtn.classList.remove('sel');
   }
 }
 
-function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function revealCorrectToUser(poll) {
+  if (timerInterval) clearInterval(timerInterval);
 
-// Сохраним QUESTIONS для доступа к времени
-window.QUESTIONS = {
-  q1: { time: 15 },
-  q2: { time: 15 },
-  q3: { time: 15 },
-  q4: { time: 15 },
-  q5: { time: 15 },
-  q6: { time: 15 },
-  q7: { time: 15 }
-};
+  const correctIdx = Number(poll.correct);
+  const buttons = app.querySelectorAll('.opt');
 
-// Если нет имени – показать запрос
-if (!myName) askName();
+  buttons.forEach(btn => {
+    const idx = Number(btn.dataset.i);
+    btn.disabled = true;
+
+    if (idx === correctIdx) {
+      btn.classList.add('correct-answer');
+    }
+
+    if (selectedAnswer !== null && idx === selectedAnswer && selectedAnswer !== correctIdx) {
+      btn.classList.add('wrong-answer');
+    }
+  });
+}
+
+async function updateMyScore() {
+  if (!myName) {
+    myScore = 0;
+    return;
+  }
+
+  let score = 0;
+
+  for (const qid of QUESTION_ORDER) {
+    const snap = await db.ref('responses/' + qid + '/' + safeKey(myName)).once('value');
+    const data = snap.val();
+
+    if (data && Number(data.answer) === QUESTIONS_META[qid].correct) {
+      score++;
+    }
+  }
+
+  myScore = score;
+
+  const pill = document.querySelector('.score-pill');
+  if (pill) {
+    pill.textContent = `Правильных ответов: ${myScore}`;
+  }
+}
+
+async function showResultsForUser() {
+  await updateMyScore();
+
+  app.innerHTML = `
+    <div class="score-pill">Ваш результат: ${myScore}</div>
+    <div class="card state">
+      <div class="state-title">Квиз завершён</div>
+      <div>Спасибо за участие</div>
+    </div>
+  `;
+}
+
+db.ref('state').on('value', async (snap) => {
+  const state = snap.val() || {};
+  const poll = state.currentPoll || null;
+
+  await updateMyScore();
+
+  if (!myName) {
+    showNameForm();
+    return;
+  }
+
+  if (state.quizStatus === 'finished') {
+    showResultsForUser();
+    return;
+  }
+
+  if (!poll || !poll.id) {
+    showWaiting('Ожидайте начала квиза');
+    return;
+  }
+
+  if (poll.status === 'active') {
+    if (lastRenderedState !== poll.id + ':active') {
+      lastRenderedState = poll.id + ':active';
+      renderPoll(poll);
+    }
+    return;
+  }
+
+  if (poll.status === 'revealed') {
+    if (currentPollId !== poll.id) {
+      renderPoll(poll);
+    }
+    revealCorrectToUser(poll);
+    lastRenderedState = poll.id + ':revealed';
+  }
+});
+
+db.ref('responses').on('value', () => {
+  updateMyScore();
+});
+
+function safeKey(name) {
+  return String(name)
+    .trim()
+    .replace(/[.#$\[\]\/]/g, '_')
+    .slice(0, 80);
+}
+
+function esc(s) {
+  return String(s).replace(/[&<>"]/g, c => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;'
+  }[c]));
+}
+
+if (!myName) {
+  showNameForm();
+} else {
+  showWaiting();
+}
 </script>
 </body>
 </html>
