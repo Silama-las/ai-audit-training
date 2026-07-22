@@ -189,44 +189,6 @@
       font-size: 13px;
       line-height: 1.35;
     }
-
-    .results-title {
-      font-size: 24px;
-      font-weight: 900;
-      text-align: center;
-      margin-bottom: 10px;
-    }
-
-    .lb-row {
-      display: grid;
-      grid-template-columns: 36px 1fr 50px;
-      gap: 8px;
-      align-items: center;
-      border-bottom: 1px solid var(--line);
-      padding: 7px 0;
-      font-size: 15px;
-    }
-
-    .lb-row:last-child {
-      border-bottom: none;
-    }
-
-    .lb-rank {
-      color: var(--dim);
-      font-weight: 900;
-    }
-
-    .lb-name {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .lb-score {
-      color: var(--pink);
-      font-weight: 900;
-      text-align: right;
-    }
   </style>
 </head>
 <body>
@@ -263,17 +225,23 @@ const QUESTIONS_META = {
   q7: { correct: 2 }
 };
 
-let myName = localStorage.getItem('quizUserName') || '';
+let myName = '';
+let currentSession = null;
+let savedSession = localStorage.getItem('quizSession') || '';
+let savedName = localStorage.getItem('quizUserName') || '';
+
 let currentPollId = null;
 let timerInterval = null;
 let selectedAnswer = null;
 let myScore = 0;
-let lastRenderedState = '';
+let lastRenderedKey = '';
 
 function showNameForm() {
+  if (timerInterval) clearInterval(timerInterval);
+
   app.innerHTML = `
     <div class="card name-form">
-      <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${esc(myName)}" autofocus>
+      <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${esc(savedName)}" autofocus>
       <button id="nameBtn">Продолжить</button>
     </div>
     <div class="hint">Ник нужен для итогового рейтинга</div>
@@ -291,7 +259,20 @@ function showNameForm() {
     }
 
     myName = val;
+    savedName = val;
+
     localStorage.setItem('quizUserName', myName);
+
+    if (currentSession) {
+      localStorage.setItem('quizSession', String(currentSession));
+      savedSession = String(currentSession);
+    }
+
+    myScore = 0;
+    selectedAnswer = null;
+    currentPollId = null;
+    lastRenderedKey = '';
+
     showWaiting();
   });
 
@@ -307,9 +288,6 @@ function showWaiting(text = 'Ожидайте начала квиза') {
     showNameForm();
     return;
   }
-
-  currentPollId = null;
-  selectedAnswer = null;
 
   if (timerInterval) clearInterval(timerInterval);
 
@@ -353,9 +331,7 @@ function renderPoll(poll) {
     </div>
   `;
 
-  const buttons = app.querySelectorAll('.opt');
-
-  buttons.forEach(btn => {
+  app.querySelectorAll('.opt').forEach(btn => {
     btn.addEventListener('click', () => vote(poll, Number(btn.dataset.i)));
   });
 
@@ -376,6 +352,8 @@ function renderPoll(poll) {
 }
 
 async function checkExistingVote(poll) {
+  if (!myName) return;
+
   const voteRef = db.ref('responses/' + poll.id + '/' + safeKey(myName));
   const snap = await voteRef.once('value');
 
@@ -413,6 +391,8 @@ async function vote(poll, answerIndex) {
       answer: answerIndex,
       timestamp: firebase.database.ServerValue.TIMESTAMP
     });
+
+    await updateMyScore();
   } catch(e) {
     alert('Ошибка, попробуйте ещё раз');
     selectedAnswer = null;
@@ -466,7 +446,7 @@ async function updateMyScore() {
   }
 }
 
-async function showResultsForUser() {
+async function showFinished() {
   await updateMyScore();
 
   app.innerHTML = `
@@ -481,16 +461,40 @@ async function showResultsForUser() {
 db.ref('state').on('value', async (snap) => {
   const state = snap.val() || {};
   const poll = state.currentPoll || null;
+  const firebaseSession = state.session ? String(state.session) : '';
 
-  await updateMyScore();
+  if (firebaseSession && firebaseSession !== String(currentSession)) {
+    currentSession = firebaseSession;
+  }
+
+  const localSession = localStorage.getItem('quizSession') || '';
+
+  if (!firebaseSession) {
+    showNameForm();
+    return;
+  }
+
+  if (firebaseSession !== localSession) {
+    myName = '';
+    myScore = 0;
+    selectedAnswer = null;
+    currentPollId = null;
+    lastRenderedKey = '';
+    showNameForm();
+    return;
+  }
+
+  myName = localStorage.getItem('quizUserName') || '';
 
   if (!myName) {
     showNameForm();
     return;
   }
 
+  await updateMyScore();
+
   if (state.quizStatus === 'finished') {
-    showResultsForUser();
+    showFinished();
     return;
   }
 
@@ -499,9 +503,11 @@ db.ref('state').on('value', async (snap) => {
     return;
   }
 
+  const renderKey = poll.id + ':' + poll.status;
+
   if (poll.status === 'active') {
-    if (lastRenderedState !== poll.id + ':active') {
-      lastRenderedState = poll.id + ':active';
+    if (lastRenderedKey !== renderKey) {
+      lastRenderedKey = renderKey;
       renderPoll(poll);
     }
     return;
@@ -511,8 +517,9 @@ db.ref('state').on('value', async (snap) => {
     if (currentPollId !== poll.id) {
       renderPoll(poll);
     }
+
     revealCorrectToUser(poll);
-    lastRenderedState = poll.id + ':revealed';
+    lastRenderedKey = renderKey;
   }
 });
 
@@ -536,11 +543,7 @@ function esc(s) {
   }[c]));
 }
 
-if (!myName) {
-  showNameForm();
-} else {
-  showWaiting();
-}
+showNameForm();
 </script>
 </body>
 </html>
