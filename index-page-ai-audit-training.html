@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ведущий квиз</title>
   <style>
-    /* Стили для ведущего */
-    :root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#171b22;--dim:#5d6673;--blue:#2049c7;--green:#187a52}
+    /* === Дизайн от коллеги === */
+    :root{--bg:#f6f4ee;--card:#ffffff;--line:#e2ddd0;--ink:#171b22;--dim:#5d6673;
+      --blue:#2049c7;--green:#187a52;
+      --mono:'JetBrains Mono',ui-monospace,Consolas,monospace}
     *{margin:0;padding:0;box-sizing:border-box}
-    body{background:var(--bg);color:var(--ink);font-family:system-ui,sans-serif;padding:30px;display:flex;flex-direction:column;min-height:100vh}
+    body{min-height:100vh;background:var(--bg);color:var(--ink);
+      font-family:'Inter',system-ui,-apple-system,sans-serif;
+      padding:30px;display:flex;flex-direction:column}
     .header{display:flex;justify-content:space-between;align-items:center;margin-bottom:30px}
     .header h1{font-size:28px}
-    .poll-area{background:var(--card);border-radius:20px;padding:30px;box-shadow:0 4px 12px rgba(0,0,0,.05);margin-bottom:30px}
+    .poll-area{background:var(--card);border-radius:20px;padding:30px;box-shadow:0 1px 2px rgba(23,27,34,.05);margin-bottom:30px}
     .poll-area h2{font-size:26px;margin-bottom:20px}
     .bars{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
     .bar-row{display:flex;align-items:center;gap:12px}
@@ -20,7 +24,7 @@
     .bar-fill{height:100%;background:var(--blue);border-radius:16px;transition:width .3s;width:0%;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-weight:600;font-size:14px}
     .bar-fill.correct{background:var(--green)}
     .total{font-size:14px;color:var(--dim);margin-bottom:10px}
-    .leaderboard{background:var(--card);border-radius:20px;padding:25px;box-shadow:0 4px 12px rgba(0,0,0,.05)}
+    .leaderboard{background:var(--card);border-radius:20px;padding:25px;box-shadow:0 1px 2px rgba(23,27,34,.05);max-height:420px;overflow-y:auto}
     .leaderboard h3{font-size:20px;margin-bottom:15px}
     .lb-row{display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)}
     .lb-row:last-child{border-bottom:none}
@@ -28,16 +32,20 @@
     .lb-name{flex:1}
     .lb-score{font-weight:700;color:var(--blue)}
     .controls{margin-top:20px;display:flex;gap:12px;flex-wrap:wrap}
-    .controls button{padding:10px 20px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer}
+    .controls button{padding:10px 20px;border:none;border-radius:10px;background:var(--blue);color:#fff;font-weight:600;cursor:pointer;font-family:inherit}
     .controls button.secondary{background:#ddd;color:#333}
     .controls button.danger{background:#c0392b}
     .status{font-size:14px;color:var(--dim);margin-top:10px}
     .hidden{display:none}
     .timer{font-weight:700;color:var(--blue);font-size:20px}
-    .leaderboard {max-height: 420px; overflow-y: auto;}
+    .qr-block{background:var(--card);border-radius:20px;padding:20px;margin-top:20px;text-align:center;box-shadow:0 1px 2px rgba(23,27,34,.05)}
+    .qr-block .qr-label{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:10px}
+    .top{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--blue);margin-bottom:20px}
+    .foot{margin-top:auto;padding-top:30px;font-family:var(--mono);font-size:11px;color:#98a0ab;text-align:center}
   </style>
 </head>
 <body>
+<div class="top">ИИ для аудиторов · квиз · ведущий</div>
 
 <div class="header">
   <h1>🎯 Квиз</h1>
@@ -56,8 +64,15 @@
   </div>
 </div>
 
+<!-- QR-код -->
+<div class="qr-block">
+  <div class="qr-label">Сканируйте для голосования</div>
+  <div id="qrcode" style="display:inline-block;background:#fff;padding:10px;border-radius:12px;"></div>
+  <div style="margin-top:10px;font-size:14px;color:var(--dim);word-break:break-all;" id="qrUrlDisplay"></div>
+</div>
+
 <div class="leaderboard">
-  <h3>🏆 Топ‑5 участников</h3>
+  <h3>🏆 Топ‑10 участников</h3>
   <div id="leaderboardList">
     <div style="color:var(--dim);padding:10px 0;">Пока нет данных</div>
   </div>
@@ -69,9 +84,13 @@
   <button id="manualBtn" class="secondary">👆 Ручной режим (M)</button>
 </div>
 
+<div class="foot">голос анонимный · один голос на вопрос</div>
+
 <script src="config.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
 <script>
 // ===== КОНФИГУРАЦИЯ ВОПРОСОВ (ваши 7 вопросов) =====
 const QUESTIONS = {
@@ -142,12 +161,25 @@ if (!cfg.firebase) {
 firebase.initializeApp(cfg.firebase);
 const db = firebase.database();
 
+// ===== QR-код =====
+const voteUrl = cfg.voteUrl || window.location.href.replace('index-page-ai-audit-training.html','vote-ai-audit-training.html');
+if (typeof QRCode !== 'undefined') {
+  new QRCode(document.getElementById("qrcode"), {
+    text: voteUrl,
+    width: 200,
+    height: 200
+  });
+  document.getElementById('qrUrlDisplay').textContent = voteUrl;
+} else {
+  document.getElementById('qrcode').innerHTML = '⚠️ QR-библиотека не загружена';
+}
+
 // ===== СОСТОЯНИЕ =====
-let currentQuestionId = null;      // id текущего вопроса (q1..q7)
+let currentQuestionId = null;
 let questionOrder = ['q1','q2','q3','q4','q5','q6','q7'];
-let currentIndex = -1;            // индекс в массиве
+let currentIndex = -1;
 let timerTimeout = null;
-let isAnsweredRevealed = false;   // показан ли правильный ответ
+let isAnsweredRevealed = false;
 
 // Ссылки на DOM
 const pollDisplay = document.getElementById('pollDisplay');
@@ -162,7 +194,6 @@ const statusDiv = document.getElementById('status');
 
 // ===== ОТОБРАЖЕНИЕ ТЕКУЩЕГО ВОПРОСА =====
 function showQuestion(questionId) {
-  // Очищаем старый таймер
   if (timerTimeout) { clearTimeout(timerTimeout); timerTimeout = null; }
   const qData = QUESTIONS[questionId];
   if (!qData) return;
@@ -170,13 +201,11 @@ function showQuestion(questionId) {
   currentQuestionId = questionId;
   isAnsweredRevealed = false;
 
-  // Обновляем UI
   questionPlaceholder.classList.add('hidden');
   questionContent.classList.remove('hidden');
   questionText.textContent = qData.q;
   timerSec.textContent = qData.time;
 
-  // Очищаем столбики
   barsContainer.innerHTML = '';
   qData.options.forEach((opt, i) => {
     const row = document.createElement('div');
@@ -190,13 +219,9 @@ function showQuestion(questionId) {
     barsContainer.appendChild(row);
   });
 
-  // Обновим счётчики голосов (из responses)
   updateBars(questionId);
-
-  // Обновим таймер (автопоказ ответа)
   startTimer(questionId, qData.time);
 
-  // Устанавливаем currentPoll в Firebase, чтобы страница голосования показала вопрос
   db.ref('state/currentPoll').set({
     id: questionId,
     q: qData.q,
@@ -207,7 +232,6 @@ function showQuestion(questionId) {
   statusDiv.textContent = `Вопрос ${questionId} активен`;
 }
 
-// ===== ТАЙМЕР ДЛЯ АВТОПОКАЗА ОТВЕТА =====
 function startTimer(questionId, seconds) {
   let remaining = seconds;
   timerSec.textContent = remaining;
@@ -218,7 +242,6 @@ function startTimer(questionId, seconds) {
     if (remaining <= 0) {
       clearInterval(timerTimeout);
       timerTimeout = null;
-      // Показываем правильный ответ
       revealCorrectAnswer(questionId);
     }
   }, 1000);
@@ -230,21 +253,17 @@ function revealCorrectAnswer(questionId) {
   const qData = QUESTIONS[questionId];
   if (!qData) return;
   const correctIdx = qData.correct;
-  // Подсветим правильный столбик
   const correctBar = document.getElementById(`bar-${questionId}-${correctIdx}`);
   if (correctBar) {
     correctBar.classList.add('correct');
   }
-  // Также можно показать пояснение, но у нас его нет – можно добавить в вопросы.
   statusDiv.textContent = `✅ Правильный ответ: ${qData.options[correctIdx]}`;
 }
 
-// ===== ОБНОВЛЕНИЕ СТОЛБИКОВ =====
 function updateBars(questionId) {
   const qData = QUESTIONS[questionId];
   if (!qData) return;
   const counts = new Array(qData.options.length).fill(0);
-  // Читаем все ответы на этот вопрос из Firebase
   db.ref('responses/' + questionId).once('value', (snap) => {
     const data = snap.val();
     if (data) {
@@ -253,7 +272,6 @@ function updateBars(questionId) {
         if (idx >= 0 && idx < counts.length) counts[idx]++;
       });
     }
-    // Обновляем столбики
     const total = counts.reduce((a,b) => a + b, 0);
     document.getElementById('totalVotes').textContent = total;
     qData.options.forEach((opt, i) => {
@@ -264,12 +282,11 @@ function updateBars(questionId) {
         bar.textContent = counts[i] > 0 ? counts[i] : '';
       }
     });
-    // Обновляем рейтинг после получения данных
     updateLeaderboard();
   });
 }
 
-// ===== РЕЙТИНГ (ТОП‑5) =====
+// ===== РЕЙТИНГ (ТОП‑10) =====
 async function updateLeaderboard() {
   const allQuestions = Object.keys(QUESTIONS);
   const scores = {};
@@ -280,14 +297,12 @@ async function updateLeaderboard() {
     const data = snap.val();
     if (!data) continue;
     Object.entries(data).forEach(([userName, resp]) => {
-      const isCorrect = (resp.answer === qData.correct);
-      if (isCorrect) {
+      if (resp.answer === qData.correct) {
         scores[userName] = (scores[userName] || 0) + 1;
       }
     });
   }
 
-  // Сортируем и берём топ‑10
   const sorted = Object.entries(scores)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10);
@@ -325,21 +340,16 @@ function nextQuestion() {
     questionContent.classList.add('hidden');
     questionPlaceholder.classList.remove('hidden');
     questionPlaceholder.innerHTML = '🎉 Квиз завершён! Спасибо всем участникам.';
-    // Удаляем currentPoll, чтобы голосование закрылось
     db.ref('state/currentPoll').set(null);
   }
 }
 
 function resetAll() {
-  // Сброс всех голосов (удаляем все responses)
   if (confirm('Удалить все ответы участников?')) {
     db.ref('responses').set(null);
-    // Также сбрасываем счётчики в polls (если используем)
     db.ref('polls').set(null);
-    // Сбрасываем сессию, чтобы телефоны обновились
     db.ref('state/session').set(Date.now());
     statusDiv.textContent = 'Все данные сброшены';
-    // Возвращаем к первому вопросу
     currentIndex = -1;
     questionContent.classList.add('hidden');
     questionPlaceholder.classList.remove('hidden');
@@ -349,14 +359,13 @@ function resetAll() {
   }
 }
 
-// ===== РУЧНОЙ РЕЖИМ (для теста) =====
+// ===== РУЧНОЙ РЕЖИМ =====
 let manualMode = false;
 document.getElementById('manualBtn').addEventListener('click', () => {
   manualMode = !manualMode;
   document.getElementById('manualBtn').style.background = manualMode ? 'var(--green)' : '#ddd';
   statusDiv.textContent = manualMode ? 'Ручной режим: клик по столбику = голос' : 'Ожидание';
 });
-// Обработка кликов по столбикам в ручном режиме (делегирование)
 document.addEventListener('click', (e) => {
   if (!manualMode) return;
   const bar = e.target.closest('.bar-fill');
@@ -365,10 +374,8 @@ document.addEventListener('click', (e) => {
   if (!idMatch) return;
   const qid = idMatch[1];
   const idx = parseInt(idMatch[2]);
-  // Добавляем голос вручную (имитация)
   const qData = QUESTIONS[qid];
   if (!qData) return;
-  // Записываем фиктивного пользователя (например, "Manual_"+idx)
   const userName = 'Manual_' + Date.now();
   db.ref('responses/' + qid + '/' + userName).set({
     name: userName,
@@ -379,66 +386,37 @@ document.addEventListener('click', (e) => {
   });
 });
 
-// ===== ОБРАБОТЧИКИ КНОПОК =====
 document.getElementById('nextBtn').addEventListener('click', nextQuestion);
 document.getElementById('resetBtn').addEventListener('click', resetAll);
 
-// ===== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ =====
 function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 
-// ===== ПРИ ЗАГРУЗКЕ =====
-// Показываем первый вопрос автоматически (можно по желанию)
-// Я предлагаю не показывать автоматически, а ждать нажатия "Следующий"
-// Чтобы ведущий сам управлял.
-// Можно также добавить клавиатурные сокращения: стрелка вправо -> next, R -> вручную показать ответ (если нужно)
-
-// ===== ПОДПИСКА НА ИЗМЕНЕНИЯ ОТВЕТОВ ДЛЯ АВТООБНОВЛЕНИЯ СТОЛБИКОВ =====
-// Будем слушать изменения в responses и обновлять столбики для текущего вопроса
-db.ref('responses').on('child_added', (snap) => {
-  // при добавлении любого ответа обновляем текущий вопрос
-  if (currentQuestionId) {
-    updateBars(currentQuestionId);
-  }
-});
-db.ref('responses').on('child_changed', (snap) => {
+// ===== ПОДПИСКИ =====
+db.ref('responses').on('child_added', () => {
   if (currentQuestionId) updateBars(currentQuestionId);
 });
-db.ref('responses').on('child_removed', (snap) => {
+db.ref('responses').on('child_changed', () => {
   if (currentQuestionId) updateBars(currentQuestionId);
 });
-
-// Также обновляем рейтинг при любом изменении
+db.ref('responses').on('child_removed', () => {
+  if (currentQuestionId) updateBars(currentQuestionId);
+});
 db.ref('responses').on('value', () => {
   updateLeaderboard();
 });
 
-// При загрузке показываем заглушку
+// Инициализация
 questionPlaceholder.classList.remove('hidden');
 questionContent.classList.add('hidden');
 statusDiv.textContent = 'Готов к работе';
 
-// ===== (Опционально) Горячие клавиши =====
+// Горячие клавиши
 document.addEventListener('keydown', (e) => {
   if (e.key === 'ArrowRight') nextQuestion();
-  if (e.key === 'r' && currentQuestionId) {
-    // Принудительно показать ответ
-    revealCorrectAnswer(currentQuestionId);
-  }
-  if (e.key === 'm') {
-    document.getElementById('manualBtn').click();
-  }
+  if (e.key === 'r' && currentQuestionId) revealCorrectAnswer(currentQuestionId);
+  if (e.key === 'm') document.getElementById('manualBtn').click();
 });
 
-</script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-ai-audit-trainingjs/1.0.0/qrcode-ai-audit-training.min.js"></script>
-<div id="qrcode-ai-audit-training" style="margin:20px auto;text-align:center;"></div>
-<script>
-  const voteUrl = cfg.voteUrl || window.location.href.replace('index-page-ai-audit-training.html','vote-ai-audit-training.html');
-  new QRCode(document.getElementById("qrcode-ai-audit-training"), {
-    text: voteUrl,
-    width: 200,
-    height: 200
-  });
 </script>
 </body>
 </html>
