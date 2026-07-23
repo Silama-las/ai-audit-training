@@ -131,6 +131,7 @@ let responsesCache = {};
 let selectedAnswer = null;
 let renderedKey = '';
 let uiTicker = null;
+let latestState = { status: 'idle' };
 
 /* ---------- Boot: show a neutral loader until we get real state ---------- */
 app.innerHTML = `<div class="card state"><div class="pulse-dot"></div>Подключение…</div>`;
@@ -142,6 +143,7 @@ db.ref('responses').on('value', snap => {
 
 db.ref('state').on('value', snap => {
   const st = snap.val() || { status: 'idle' };
+  latestState = st;
   route(st);
 });
 
@@ -325,9 +327,22 @@ function startTicker(st) {
 function stopTicker() { if (uiTicker) { clearInterval(uiTicker); uiTicker = null; } }
 
 function myScore() {
-  let score = 0;
+  const st = latestState;
+  if (!st || !st.status || st.status === 'idle') return 0;
+
+  const currentIndex = st.index ?? -1;
   const myKey = safeKey(myName);
-  QUESTION_ORDER.forEach(qid => {
+  let score = 0;
+
+  QUESTION_ORDER.forEach((qid, i) => {
+    // A question only counts once its correct answer has actually been
+    // revealed to everyone (timer ended) — never the instant someone taps
+    // an option, and never for the question that's still running.
+    const isRevealed = st.status === 'finished'
+      || i < currentIndex
+      || (i === currentIndex && st.status === 'revealed');
+    if (!isRevealed) return;
+
     const resp = responsesCache[qid]?.[myKey];
     if (resp && Number(resp.answer) === QUESTIONS[qid].correct) score++;
   });
