@@ -344,7 +344,7 @@ async function showResults() {
     });
   });
 
-  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0, 10);
+  const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0, 15);
 
   pollDisplay.classList.add('hidden');
   document.querySelector('.side').classList.add('hidden');
@@ -412,7 +412,7 @@ function render() {
     questionContent.classList.add('hidden');
     questionPlaceholder.classList.remove('hidden');
     questionPlaceholder.querySelector('.big').textContent = 'Квиз завершён 🎉';
-    questionPlaceholder.querySelector('.small').textContent = 'Нажмите «Результаты», чтобы показать топ-10.';
+    questionPlaceholder.querySelector('.small').textContent = 'Нажмите «Результаты», чтобы показать топ.';
     statusDiv.textContent = 'Квиз завершён';
     statusDiv.classList.remove('live');
     stopTicker();
