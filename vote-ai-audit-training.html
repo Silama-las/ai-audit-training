@@ -1,619 +1,363 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Голосование</title>
-  <style>
-    :root {
-      --bg: #f6f4ee;
-      --card: #ffffff;
-      --line: #e2ddd0;
-      --ink: #171b22;
-      --dim: #5d6673;
-      --pink: #e91e63;
-      --green: #2e7d32;
-      --red: #c0392b;
-      --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Голосование · Квиз</title>
+<style>
+  :root {
+    --bg: #f6f4ee;
+    --card: #ffffff;
+    --line: #e5e0d3;
+    --ink: #171b22;
+    --dim: #7b8290;
+    --pink: #e91e63;
+    --pink-soft: #fce4ec;
+    --green: #2e7d32;
+    --green-soft: #e8f5e9;
+    --red: #c0392b;
+    --red-soft: #fdecea;
+    --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+    --ease: cubic-bezier(.4,0,.2,1);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html, body { width:100%; height:100%; overflow:hidden; }
+  body {
+    background:
+      radial-gradient(900px 400px at 100% -10%, #fde3ec 0%, transparent 55%),
+      radial-gradient(700px 400px at -10% 110%, #e6f3e7 0%, transparent 55%),
+      var(--bg);
+    color: var(--ink);
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    padding: 14px;
+  }
+  .screen { width:100%; max-width:520px; height:calc(100vh - 28px); margin:0 auto; display:flex; flex-direction:column; justify-content:center; gap:12px; }
+  .top { font-family:var(--mono); font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--pink); text-align:center; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:20px; padding:18px; box-shadow:0 2px 14px rgba(23,27,34,.05); animation: pop .25s var(--ease); }
+  @keyframes pop { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:translateY(0); } }
 
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      -webkit-tap-highlight-color: transparent;
-    }
+  .name-form { display:flex; flex-direction:column; gap:12px; }
+  input {
+    width:100%; padding:15px 16px; border:1px solid var(--line); border-radius:14px;
+    font-size:18px; font-family:inherit; color:var(--ink); background:var(--card);
+  }
+  input:focus { outline:none; border-color:var(--pink); box-shadow:0 0 0 3px rgba(233,30,99,.12); }
+  button {
+    width:100%; border:none; border-radius:14px; padding:14px; font-family:inherit;
+    font-size:16px; font-weight:800; cursor:pointer; background:var(--pink); color:#fff;
+    transition:transform .12s, opacity .2s;
+  }
+  button:active:not(:disabled) { transform:scale(.98); }
+  button:disabled { opacity:.5; cursor:default; }
 
-    html,
-    body {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-    }
+  .state { text-align:center; color:var(--dim); font-size:17px; line-height:1.45; }
+  .state-title { color:var(--ink); font-size:23px; font-weight:800; margin-bottom:6px; }
+  .pulse-dot { width:8px; height:8px; border-radius:50%; background:var(--pink); margin:0 auto 14px; animation: pulse 1.4s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity:.3; transform:scale(.8); } 50% { opacity:1; transform:scale(1.2); } }
 
-    body {
-      background: var(--bg);
-      color: var(--ink);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      padding: 12px;
-    }
+  .score-pill {
+    align-self:center; background:var(--card); border:1px solid var(--line); border-radius:999px;
+    padding:8px 16px; font-size:13px; font-weight:800; color:var(--pink); box-shadow:0 2px 8px rgba(23,27,34,.05);
+  }
 
-    .screen {
-      width: 100%;
-      max-width: 520px;
-      height: calc(100vh - 24px);
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      gap: 12px;
-    }
+  .qcounter { text-align:center; font-family:var(--mono); font-size:11px; letter-spacing:.1em; color:var(--dim); text-transform:uppercase; margin-bottom:2px; }
 
-    .top {
-      font-family: var(--mono);
-      font-size: 10px;
-      letter-spacing: .18em;
-      text-transform: uppercase;
-      color: var(--pink);
-      text-align: center;
-    }
+  .timer-wrap { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .timer-track { flex:1; height:6px; background:#f0ede8; border-radius:999px; overflow:hidden; }
+  .timer-fill { height:100%; background:var(--pink); width:100%; transition:width .1s linear, background .3s; border-radius:999px; }
+  .timer-fill.low { background:var(--red); }
+  .timer-num { font-variant-numeric:tabular-nums; font-weight:900; color:var(--pink); font-size:15px; min-width:26px; text-align:right; }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 18px;
-      padding: 16px;
-      box-shadow: 0 1px 2px rgba(23,27,34,.05);
-    }
+  h1 { font-size:clamp(18px,5vw,25px); line-height:1.2; font-weight:850; margin-bottom:14px; }
 
-    .name-form {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
+  .opts { display:flex; flex-direction:column; gap:9px; }
+  .opt {
+    background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:13px 14px;
+    font-size:clamp(14px,4vw,16.5px); line-height:1.25; font-weight:700; color:var(--ink);
+    text-align:left; box-shadow:0 1px 3px rgba(23,27,34,.04); transition: all .2s var(--ease);
+  }
+  .opt:active:not(:disabled) { transform:scale(.985); }
+  .opt.sel { border-color:var(--pink); background:var(--pink-soft); box-shadow:0 0 0 3px rgba(233,30,99,.12); }
+  .opt.correct-answer { border-color:var(--green); background:var(--green-soft); color:var(--green); font-weight:900; }
+  .opt.wrong-answer { border-color:var(--red); background:var(--red-soft); }
+  .opt:disabled { cursor:default; }
 
-    input {
-      width: 100%;
-      padding: 14px 16px;
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      font-size: 18px;
-      font-family: inherit;
-      color: var(--ink);
-      background: var(--card);
-    }
+  .hint { text-align:center; color:var(--dim); font-size:12.5px; line-height:1.4; }
+  .link-btn { background:none; border:none; color:var(--dim); font-size:12.5px; text-decoration:underline; padding:2px; width:auto; align-self:center; font-weight:600; }
 
-    input:focus {
-      outline: none;
-      border-color: var(--pink);
-    }
-
-    button {
-      width: 100%;
-      border: none;
-      border-radius: 12px;
-      padding: 13px 14px;
-      font-family: inherit;
-      font-size: 16px;
-      font-weight: 800;
-      cursor: pointer;
-      background: var(--pink);
-      color: #fff;
-    }
-
-    button:disabled {
-      opacity: .55;
-      cursor: default;
-    }
-
-    .state {
-      text-align: center;
-      color: var(--dim);
-      font-size: 18px;
-      line-height: 1.45;
-    }
-
-    .state-title {
-      color: var(--ink);
-      font-size: 24px;
-      font-weight: 800;
-      margin-bottom: 8px;
-    }
-
-    .score-pill {
-      align-self: center;
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 14px;
-      font-weight: 800;
-      color: var(--pink);
-      box-shadow: 0 1px 2px rgba(23,27,34,.05);
-    }
-
-    .timer {
-      text-align: center;
-      color: var(--pink);
-      font-size: 20px;
-      font-weight: 900;
-      margin-bottom: 8px;
-    }
-
-    h1 {
-      font-size: clamp(18px, 5vw, 25px);
-      line-height: 1.18;
-      font-weight: 850;
-      margin-bottom: 12px;
-    }
-
-    .opts {
-      display: flex;
-      flex-direction: column;
-      gap: 9px;
-    }
-
-    .opt {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 12px;
-      padding: 12px 14px;
-      font-size: clamp(14px, 4vw, 17px);
-      line-height: 1.22;
-      font-weight: 700;
-      color: var(--ink);
-      text-align: left;
-      box-shadow: 0 1px 2px rgba(23,27,34,.05);
-    }
-
-    .opt.sel {
-      border-color: var(--pink);
-      background: #fce4ec;
-      box-shadow: 0 0 0 3px rgba(233,30,99,.12);
-    }
-
-    .opt.correct-answer {
-      border-color: var(--green);
-      background: #e8f5e9;
-      color: var(--green);
-      font-weight: 900;
-    }
-
-    .opt.wrong-answer {
-      border-color: var(--red);
-      background: #fdecea;
-    }
-
-    .hint {
-      text-align: center;
-      color: var(--dim);
-      font-size: 13px;
-      line-height: 1.35;
-    }
-  </style>
+  .final-score { font-size:52px; font-weight:900; color:var(--pink); text-align:center; margin:6px 0; }
+  .final-total { text-align:center; color:var(--dim); font-size:14px; margin-bottom:2px; }
+</style>
 </head>
-
 <body>
 <div class="screen">
   <div class="top">ИИ для аудиторов · квиз</div>
   <div id="app"></div>
 </div>
 
-<script src="./config.js?v=5"></script>
+<script src="./config.js?v=6"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
 <script>
 const app = document.getElementById('app');
-
 const cfg = window.QUIZ_CONFIG || {};
-
 if (!cfg.firebase || !cfg.firebase.apiKey) {
   app.innerHTML = '<div class="card state"><div class="state-title">Ошибка</div>Нет config.js</div>';
   throw new Error('config missing');
 }
-
 firebase.initializeApp(cfg.firebase);
 const db = firebase.database();
 
+const QUESTIONS = {
+  q1: { q:'Что может утечь при использовании внешней модели по API?', options:['промпт и ответ в логах','данные для дообучения','всё вышеперечисленное'], correct:2 },
+  q2: { q:'Что нельзя отправлять во внешние модели?', options:['шаблоны договоров','обезличенные данные','персональные и финансовые данные'], correct:2 },
+  q3: { q:'Какой промпт даст структурированный результат при проверке договора?', options:['«Проверь договор аренды»','«Найди риски для арендатора»','«Проверь по чек-листу: индексация, разрыв, штрафы, субаренда. Дай цитату, риск и оценку»'], correct:2 },
+  q4: { q:'Какой из перечисленных инструментов Яндекса представляет собой веб-агента без установки?', options:['Стефания','MARS','Гена (GENA)','Клешня Алисы Про'], correct:3 },
+  q5: { q:'Что такое MCP в контексте AI-агентов?', options:['метод машинного обучения','стандарт подключения модели к сервисам («розетка» для инструментов)','тип языковой модели','способ шифрования данных'], correct:1 },
+  q6: { q:'Что такое «промпт» в контексте работы языковых моделей?', options:['алгоритм обучения модели','запрос или инструкция, подаваемая на вход модели','метод оценки качества ответов модели','тип нейросети'], correct:1 },
+  q7: { q:'Сколько уровней ИИ выделяется в рамках представленной классификации?', options:['3','4','5','6'], correct:2 }
+};
 const QUESTION_ORDER = ['q1','q2','q3','q4','q5','q6','q7'];
 
-const QUESTIONS_META = {
-  q1: { correct: 2 },
-  q2: { correct: 2 },
-  q3: { correct: 2 },
-  q4: { correct: 3 },
-  q5: { correct: 1 },
-  q6: { correct: 1 },
-  q7: { correct: 2 }
-};
+/* ---------- Server-synced clock ---------- */
+let serverOffset = 0;
+db.ref('.info/serverTimeOffset').on('value', snap => { serverOffset = snap.val() || 0; });
+function serverNow() { return Date.now() + serverOffset; }
 
-let myName = '';
-let currentSession = '';
-let currentPollId = null;
-let timerInterval = null;
+/* ---------- Local identity (not gated on any race with Firebase) ---------- */
+let myName = localStorage.getItem('quizUserName') || '';
+let responsesCache = {};
 let selectedAnswer = null;
-let myScore = 0;
-let lastRenderedKey = '';
+let renderedKey = '';
+let uiTicker = null;
 
-/*
-  revealedQuestions хранит вопросы, по которым уже был раскрыт ответ.
-  Счёт считается только по этим вопросам.
-*/
-let revealedQuestions = {};
+/* ---------- Boot: show a neutral loader until we get real state ---------- */
+app.innerHTML = `<div class="card state"><div class="pulse-dot"></div>Подключение…</div>`;
+
+db.ref('responses').on('value', snap => {
+  responsesCache = snap.val() || {};
+  if (document.querySelector('.score-pill')) updateScorePill();
+});
+
+db.ref('state').on('value', snap => {
+  const st = snap.val() || { status: 'idle' };
+  route(st);
+});
+
+function route(st) {
+  if (!myName) { renderedKey = ''; showNameForm(); return; }
+
+  const status = st.status || 'idle';
+
+  if (status === 'idle') {
+    const key = 'idle';
+    if (renderedKey !== key) { renderedKey = key; showWaiting('Ожидайте начала квиза'); }
+    return;
+  }
+
+  if (status === 'finished') {
+    const key = 'finished';
+    if (renderedKey !== key) { renderedKey = key; showFinished(); }
+    return;
+  }
+
+  // active or revealed
+  const key = st.qid + ':' + status;
+  if (renderedKey !== key) {
+    renderedKey = key;
+    renderPoll(st);
+  } else if (status === 'revealed') {
+    // make sure reveal styling is applied even if we were already showing this poll
+    applyReveal(st);
+  }
+}
 
 function showNameForm() {
-  if (timerInterval) clearInterval(timerInterval);
-
-  const savedName = localStorage.getItem('quizUserName') || '';
-
+  stopTicker();
+  const saved = localStorage.getItem('quizUserName') || '';
   app.innerHTML = `
     <div class="card name-form">
-      <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${esc(savedName)}" autofocus>
+      <input id="nameInput" type="text" placeholder="Введите ваш ник" value="${esc(saved)}" autofocus maxlength="40">
       <button id="nameBtn">Продолжить</button>
     </div>
     <div class="hint">Ник нужен для итогового рейтинга</div>
   `;
-
   const input = document.getElementById('nameInput');
   const btn = document.getElementById('nameBtn');
 
-  btn.addEventListener('click', () => {
+  const submit = () => {
     const val = input.value.trim();
-
-    if (!val) {
-      alert('Пожалуйста, введите ник');
-      return;
-    }
-
+    if (!val) { input.focus(); return; }
     myName = val;
-
     localStorage.setItem('quizUserName', myName);
-
-    if (currentSession) {
-      localStorage.setItem('quizSession', String(currentSession));
-    }
-
-    myScore = 0;
-    revealedQuestions = {};
     selectedAnswer = null;
-    currentPollId = null;
-    lastRenderedKey = '';
+    renderedKey = '';
+    db.ref('state').once('value').then(snap => route(snap.val() || { status:'idle' }));
+  };
 
-    showWaiting();
-  });
-
-  input.addEventListener('keydown', (e) => {
-    if (e.key === 'Enter') btn.click();
-  });
-
+  btn.addEventListener('click', submit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
   setTimeout(() => input.focus(), 100);
 }
 
-function showWaiting(text = 'Ожидайте начала квиза') {
-  if (!myName) {
-    showNameForm();
-    return;
-  }
-
-  if (timerInterval) clearInterval(timerInterval);
-
+function showWaiting(text) {
+  stopTicker();
   app.innerHTML = `
-    <div class="score-pill">Правильных ответов: ${myScore}</div>
-
+    <div class="score-pill" id="scorePill">Правильных ответов: ${myScore()}</div>
     <div class="card state">
+      <div class="pulse-dot"></div>
       <div class="state-title">${esc(text)}</div>
       <div>Вопрос появится автоматически</div>
     </div>
+    <button class="link-btn" id="changeNameBtn">Не я — сменить ник</button>
   `;
+  document.getElementById('changeNameBtn').addEventListener('click', () => {
+    myName = '';
+    localStorage.removeItem('quizUserName');
+    renderedKey = '';
+    showNameForm();
+  });
 }
 
-function renderPoll(poll) {
-  if (!myName) {
-    showNameForm();
-    return;
-  }
+function renderPoll(st) {
+  selectedAnswer = null;
+  stopTicker();
 
-  if (currentPollId !== poll.id) {
-    selectedAnswer = null;
-  }
-
-  currentPollId = poll.id;
-
-  if (timerInterval) clearInterval(timerInterval);
-
-  const timeLimit = Number(poll.time || 15);
-
+  const qData = QUESTIONS[st.qid];
   app.innerHTML = `
-    <div class="score-pill">Правильных ответов: ${myScore}</div>
-
+    <div class="score-pill" id="scorePill">Правильных ответов: ${myScore()}</div>
     <div class="card">
-      <div class="timer">Осталось: <span id="timerVote">${timeLimit}</span> сек</div>
-      <h1>${esc(poll.q)}</h1>
-
+      <div class="qcounter">Вопрос ${(st.index ?? 0)+1} из ${st.total || QUESTION_ORDER.length}</div>
+      <div class="timer-wrap">
+        <div class="timer-track"><div class="timer-fill" id="timerFill"></div></div>
+        <div class="timer-num" id="timerNum">${st.duration || 15}</div>
+      </div>
+      <h1>${esc(qData.q)}</h1>
       <div class="opts">
-        ${poll.options.map((o, i) => `
-          <button class="opt" data-i="${i}">${esc(o)}</button>
-        `).join('')}
+        ${qData.options.map((o,i) => `<button class="opt" data-i="${i}">${esc(o)}</button>`).join('')}
       </div>
     </div>
   `;
 
   app.querySelectorAll('.opt').forEach(btn => {
-    btn.addEventListener('click', () => vote(poll, Number(btn.dataset.i)));
+    btn.addEventListener('click', () => vote(st, Number(btn.dataset.i)));
   });
 
-  checkExistingVote(poll);
-
-  let remaining = timeLimit;
-  const timerEl = document.getElementById('timerVote');
-
-  timerInterval = setInterval(() => {
-    remaining--;
-
-    if (timerEl) {
-      timerEl.textContent = Math.max(remaining, 0);
-    }
-
-    if (remaining <= 0) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-    }
-  }, 1000);
+  checkExistingVote(st);
+  startTicker(st);
+  if (st.status === 'revealed') applyReveal(st);
 }
 
-async function checkExistingVote(poll) {
-  if (!myName) return;
-
-  const voteRef = db.ref('responses/' + poll.id + '/' + safeKey(myName));
-  const snap = await voteRef.once('value');
-
+async function checkExistingVote(st) {
+  const snap = await db.ref('responses/' + st.qid + '/' + safeKey(myName)).once('value');
   if (snap.exists()) {
-    const data = snap.val();
-    selectedAnswer = Number(data.answer);
-
+    selectedAnswer = Number(snap.val().answer);
+    lockOptions();
     const btn = app.querySelector(`.opt[data-i="${selectedAnswer}"]`);
     if (btn) btn.classList.add('sel');
-
-    app.querySelectorAll('.opt').forEach(b => {
-      b.disabled = true;
-    });
-  }
-
-  if (poll.status === 'revealed') {
-    revealCorrectToUser(poll);
   }
 }
 
-async function vote(poll, answerIndex) {
-  if (!myName) return;
+async function vote(st, answerIndex) {
   if (selectedAnswer !== null) return;
-  if (poll.status !== 'active') return;
+  if (st.status !== 'active') return;
 
   selectedAnswer = answerIndex;
-
-  const buttons = app.querySelectorAll('.opt');
-
-  buttons.forEach(b => {
-    b.disabled = true;
-  });
-
-  const selectedBtn = app.querySelector(`.opt[data-i="${answerIndex}"]`);
-
-  if (selectedBtn) {
-    selectedBtn.classList.add('sel');
-  }
+  lockOptions();
+  const btn = app.querySelector(`.opt[data-i="${answerIndex}"]`);
+  if (btn) btn.classList.add('sel');
 
   try {
-    await db.ref('responses/' + poll.id + '/' + safeKey(myName)).set({
+    await db.ref('responses/' + st.qid + '/' + safeKey(myName)).set({
       name: myName,
       answer: answerIndex,
-      timestamp: firebase.database.ServerValue.TIMESTAMP
+      ts: firebase.database.ServerValue.TIMESTAMP
     });
-
-    /*
-      ВАЖНО:
-      Здесь счёт больше НЕ обновляем.
-      Счёт изменится только после revealed.
-    */
-
-  } catch(e) {
-    console.error('Ошибка голосования:', e);
-
-    alert('Ошибка, попробуйте ещё раз');
-
+  } catch (e) {
+    console.error(e);
     selectedAnswer = null;
-
-    buttons.forEach(b => {
-      b.disabled = false;
-    });
-
-    if (selectedBtn) {
-      selectedBtn.classList.remove('sel');
-    }
+    unlockOptions();
+    if (btn) btn.classList.remove('sel');
+    alert('Не удалось отправить ответ, попробуйте ещё раз');
   }
 }
 
-async function revealCorrectToUser(poll) {
-  if (timerInterval) clearInterval(timerInterval);
+function lockOptions() { app.querySelectorAll('.opt').forEach(b => b.disabled = true); }
+function unlockOptions() { app.querySelectorAll('.opt').forEach(b => b.disabled = false); }
 
-  const correctIdx = Number(poll.correct);
-  const buttons = app.querySelectorAll('.opt');
+function applyReveal(st) {
+  stopTicker();
+  const qData = QUESTIONS[st.qid];
+  if (!qData) return;
+  lockOptions();
+  const timerFill = document.getElementById('timerFill');
+  const timerNum = document.getElementById('timerNum');
+  if (timerFill) timerFill.style.width = '0%';
+  if (timerNum) timerNum.textContent = '0';
 
-  buttons.forEach(btn => {
+  app.querySelectorAll('.opt').forEach(btn => {
     const idx = Number(btn.dataset.i);
-    btn.disabled = true;
-
-    if (idx === correctIdx) {
-      btn.classList.add('correct-answer');
-    }
-
-    if (selectedAnswer !== null && idx === selectedAnswer && selectedAnswer !== correctIdx) {
-      btn.classList.add('wrong-answer');
-    }
+    if (idx === qData.correct) btn.classList.add('correct-answer');
+    else if (selectedAnswer !== null && idx === selectedAnswer) btn.classList.add('wrong-answer');
   });
 
-  /*
-    Здесь фиксируем, что ответ по этому вопросу раскрыт.
-    Только после этого обновляем счёт.
-  */
-  revealedQuestions[poll.id] = true;
-  await updateMyScoreOnlyRevealed();
+  updateScorePill();
 }
 
-async function updateMyScoreOnlyRevealed() {
-  if (!myName) {
-    myScore = 0;
-    return;
-  }
-
-  let score = 0;
-
-  for (const qid of QUESTION_ORDER) {
-    if (!revealedQuestions[qid]) continue;
-
-    const snap = await db.ref('responses/' + qid + '/' + safeKey(myName)).once('value');
-    const data = snap.val();
-
-    if (data && Number(data.answer) === QUESTIONS_META[qid].correct) {
-      score++;
+function startTicker(st) {
+  stopTicker();
+  const tick = () => {
+    const duration = st.duration || 15;
+    const elapsed = (serverNow() - (st.startedAt || serverNow())) / 1000;
+    const remaining = Math.max(0, duration - elapsed);
+    const fill = document.getElementById('timerFill');
+    const num = document.getElementById('timerNum');
+    if (fill) {
+      fill.style.width = Math.max(0, (remaining/duration)*100) + '%';
+      fill.classList.toggle('low', remaining <= 4);
     }
-  }
-
-  myScore = score;
-
-  const pill = document.querySelector('.score-pill');
-
-  if (pill) {
-    pill.textContent = `Правильных ответов: ${myScore}`;
-  }
+    if (num) num.textContent = Math.ceil(remaining);
+  };
+  tick();
+  uiTicker = setInterval(tick, 100);
 }
+function stopTicker() { if (uiTicker) { clearInterval(uiTicker); uiTicker = null; } }
 
-async function updateMyFinalScore() {
-  if (!myName) {
-    myScore = 0;
-    return;
-  }
-
+function myScore() {
   let score = 0;
-
-  for (const qid of QUESTION_ORDER) {
-    const snap = await db.ref('responses/' + qid + '/' + safeKey(myName)).once('value');
-    const data = snap.val();
-
-    if (data && Number(data.answer) === QUESTIONS_META[qid].correct) {
-      score++;
-    }
-  }
-
-  myScore = score;
+  const myKey = safeKey(myName);
+  QUESTION_ORDER.forEach(qid => {
+    const resp = responsesCache[qid]?.[myKey];
+    if (resp && Number(resp.answer) === QUESTIONS[qid].correct) score++;
+  });
+  return score;
 }
 
-async function showFinished() {
-  await updateMyFinalScore();
+function updateScorePill() {
+  const pill = document.getElementById('scorePill');
+  if (pill) pill.textContent = `Правильных ответов: ${myScore()}`;
+}
 
+function showFinished() {
+  stopTicker();
+  const score = myScore();
   app.innerHTML = `
-    <div class="score-pill">Ваш результат: ${myScore}</div>
-
     <div class="card state">
-      <div class="state-title">Квиз завершён</div>
-      <div>Спасибо за участие</div>
+      <div class="final-total">Ваш результат</div>
+      <div class="final-score">${score}<span style="font-size:22px;color:var(--dim);font-weight:700;"> / ${QUESTION_ORDER.length}</span></div>
+      <div class="state-title" style="margin-top:8px;">Квиз завершён 🎉</div>
+      <div>Спасибо за участие!</div>
     </div>
   `;
 }
 
-db.ref('state').on('value', async (snap) => {
-  const state = snap.val() || {};
-  const poll = state.currentPoll || null;
-  const firebaseSession = state.session ? String(state.session) : '';
-  const localSession = localStorage.getItem('quizSession') || '';
-
-  if (firebaseSession) {
-    currentSession = firebaseSession;
-  }
-
-  if (!firebaseSession) {
-    showNameForm();
-    return;
-  }
-
-  if (firebaseSession !== localSession) {
-    myName = '';
-    myScore = 0;
-    revealedQuestions = {};
-    selectedAnswer = null;
-    currentPollId = null;
-    lastRenderedKey = '';
-
-    showNameForm();
-    return;
-  }
-
-  myName = localStorage.getItem('quizUserName') || '';
-
-  if (!myName) {
-    showNameForm();
-    return;
-  }
-
-  if (state.quizStatus === 'finished') {
-    showFinished();
-    return;
-  }
-
-  if (!poll || !poll.id) {
-    showWaiting('Ожидайте начала квиза');
-    return;
-  }
-
-  const renderKey = poll.id + ':' + poll.status;
-
-  if (poll.status === 'active') {
-    if (lastRenderedKey !== renderKey) {
-      lastRenderedKey = renderKey;
-      renderPoll(poll);
-    }
-
-    return;
-  }
-
-  if (poll.status === 'revealed') {
-    if (currentPollId !== poll.id) {
-      renderPoll(poll);
-    }
-
-    await revealCorrectToUser(poll);
-    lastRenderedKey = renderKey;
-  }
-});
-
-/*
-  ВАЖНО:
-  Больше НЕ обновляем счёт при любом изменении responses.
-  Иначе счёт снова будет меняться сразу после выбора ответа.
-*/
-
-// db.ref('responses').on('value', () => {
-//   updateMyScore();
-// });
-
 function safeKey(name) {
-  return String(name)
-    .trim()
-    .replace(/[.#$\[\]\/]/g, '_')
-    .slice(0, 80);
+  return String(name).trim().replace(/[.#$\[\]\/]/g, '_').slice(0, 80);
 }
-
 function esc(s) {
-  return String(s).replace(/[&<>"]/g, c => ({
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;'
-  }[c]));
+  return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
-
-showNameForm();
 </script>
 </body>
 </html>
