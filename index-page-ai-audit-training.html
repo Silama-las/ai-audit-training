@@ -110,8 +110,10 @@
   button.danger { background:transparent; color:var(--red); border:1px solid #f0d4cf; }
   button:disabled { opacity:.4; cursor:default; transform:none; }
 
-  .results { padding:22px 26px; min-height:0; overflow:hidden; display:flex; flex-direction:column; }
-  .results h2 { font-size:22px; margin-bottom:4px; text-align:center; }
+  .results { grid-column: 1 / -1; padding:22px 30px; min-height:0; overflow:hidden; display:flex; flex-direction:column; max-width:640px; margin:0 auto; width:100%; }
+  .results-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:4px; }
+  .results-head h2 { font-size:22px; margin:0; }
+  .results-head button { width:auto; padding:9px 16px; font-size:13px; }
   .results .sub { text-align:center; color:var(--dim); font-size:13px; margin-bottom:14px; }
   .lb-row {
     display:grid; grid-template-columns:36px 1fr 60px; gap:8px; align-items:center;
@@ -171,7 +173,10 @@
     </div>
 
     <div id="resultsBlock" class="results hidden">
-      <h2>🏆 Топ участников</h2>
+      <div class="results-head">
+        <h2>🏆 Топ участников</h2>
+        <button id="resultsResetBtn" class="secondary">Новый квиз</button>
+      </div>
       <div class="sub" id="resultsSub"></div>
       <div id="resultsList" style="overflow-y:auto;"></div>
     </div>
@@ -305,6 +310,7 @@ async function startQuiz() {
   resultsBtn.disabled = true;
   resultsBlock.classList.add('hidden');
   pollDisplay.classList.remove('hidden');
+  document.querySelector('.side').classList.remove('hidden');
   const session = Date.now();
   await db.ref('responses').set(null);
   await openQuestion(session, 0);
@@ -316,6 +322,7 @@ async function resetAll() {
   await db.ref('state').set({ status:'idle' });
   resultsBlock.classList.add('hidden');
   pollDisplay.classList.remove('hidden');
+  document.querySelector('.side').classList.remove('hidden');
   resultsList.innerHTML = '';
   startBtn.disabled = false;
   resultsBtn.disabled = true;
@@ -340,6 +347,7 @@ async function showResults() {
   const sorted = Object.entries(scores).sort((a,b) => b[1]-a[1]).slice(0, 10);
 
   pollDisplay.classList.add('hidden');
+  document.querySelector('.side').classList.add('hidden');
   resultsBlock.classList.remove('hidden');
   statusDiv.textContent = 'Результаты';
   statusDiv.classList.remove('live');
@@ -365,6 +373,7 @@ async function showResults() {
 startBtn.addEventListener('click', startQuiz);
 resetBtn.addEventListener('click', resetAll);
 resultsBtn.addEventListener('click', showResults);
+document.getElementById('resultsResetBtn').addEventListener('click', resetAll);
 
 /* ---------- Rendering ---------- */
 let renderedQid = null;
