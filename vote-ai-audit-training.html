@@ -24,7 +24,8 @@
       -webkit-tap-highlight-color: transparent;
     }
 
-    html, body {
+    html,
+    body {
       width: 100%;
       height: 100%;
       overflow: hidden;
@@ -191,13 +192,14 @@
     }
   </style>
 </head>
+
 <body>
 <div class="screen">
   <div class="top">ИИ для аудиторов · квиз</div>
   <div id="app"></div>
 </div>
 
-<script src="config.js"></script>
+<script src="./config.js?v=5"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-database-compat.js"></script>
 
@@ -205,6 +207,7 @@
 const app = document.getElementById('app');
 
 const cfg = window.QUIZ_CONFIG || {};
+
 if (!cfg.firebase || !cfg.firebase.apiKey) {
   app.innerHTML = '<div class="card state"><div class="state-title">Ошибка</div>Нет config.js</div>';
   throw new Error('config missing');
@@ -226,18 +229,23 @@ const QUESTIONS_META = {
 };
 
 let myName = '';
-let currentSession = null;
-let savedSession = localStorage.getItem('quizSession') || '';
-let savedName = localStorage.getItem('quizUserName') || '';
-
+let currentSession = '';
 let currentPollId = null;
 let timerInterval = null;
 let selectedAnswer = null;
 let myScore = 0;
 let lastRenderedKey = '';
 
+/*
+  revealedQuestions хранит вопросы, по которым уже был раскрыт ответ.
+  Счёт считается только по этим вопросам.
+*/
+let revealedQuestions = {};
+
 function showNameForm() {
   if (timerInterval) clearInterval(timerInterval);
+
+  const savedName = localStorage.getItem('quizUserName') || '';
 
   app.innerHTML = `
     <div class="card name-form">
@@ -259,16 +267,15 @@ function showNameForm() {
     }
 
     myName = val;
-    savedName = val;
 
     localStorage.setItem('quizUserName', myName);
 
     if (currentSession) {
       localStorage.setItem('quizSession', String(currentSession));
-      savedSession = String(currentSession);
     }
 
     myScore = 0;
+    revealedQuestions = {};
     selectedAnswer = null;
     currentPollId = null;
     lastRenderedKey = '';
@@ -293,6 +300,7 @@ function showWaiting(text = 'Ожидайте начала квиза') {
 
   app.innerHTML = `
     <div class="score-pill">Правильных ответов: ${myScore}</div>
+
     <div class="card state">
       <div class="state-title">${esc(text)}</div>
       <div>Вопрос появится автоматически</div>
@@ -342,7 +350,10 @@ function renderPoll(poll) {
 
   timerInterval = setInterval(() => {
     remaining--;
-    if (timerEl) timerEl.textContent = Math.max(remaining, 0);
+
+    if (timerEl) {
+      timerEl.textContent = Math.max(remaining, 0);
+    }
 
     if (remaining <= 0) {
       clearInterval(timerInterval);
@@ -364,7 +375,9 @@ async function checkExistingVote(poll) {
     const btn = app.querySelector(`.opt[data-i="${selectedAnswer}"]`);
     if (btn) btn.classList.add('sel');
 
-    app.querySelectorAll('.opt').forEach(b => b.disabled = true);
+    app.querySelectorAll('.opt').forEach(b => {
+      b.disabled = true;
+    });
   }
 
   if (poll.status === 'revealed') {
@@ -380,10 +393,16 @@ async function vote(poll, answerIndex) {
   selectedAnswer = answerIndex;
 
   const buttons = app.querySelectorAll('.opt');
-  buttons.forEach(b => b.disabled = true);
+
+  buttons.forEach(b => {
+    b.disabled = true;
+  });
 
   const selectedBtn = app.querySelector(`.opt[data-i="${answerIndex}"]`);
-  if (selectedBtn) selectedBtn.classList.add('sel');
+
+  if (selectedBtn) {
+    selectedBtn.classList.add('sel');
+  }
 
   try {
     await db.ref('responses/' + poll.id + '/' + safeKey(myName)).set({
@@ -392,16 +411,30 @@ async function vote(poll, answerIndex) {
       timestamp: firebase.database.ServerValue.TIMESTAMP
     });
 
-    await updateMyScore();
+    /*
+      ВАЖНО:
+      Здесь счёт больше НЕ обновляем.
+      Счёт изменится только после revealed.
+    */
+
   } catch(e) {
+    console.error('Ошибка голосования:', e);
+
     alert('Ошибка, попробуйте ещё раз');
+
     selectedAnswer = null;
-    buttons.forEach(b => b.disabled = false);
-    if (selectedBtn) selectedBtn.classList.remove('sel');
+
+    buttons.forEach(b => {
+      b.disabled = false;
+    });
+
+    if (selectedBtn) {
+      selectedBtn.classList.remove('sel');
+    }
   }
 }
 
-function revealCorrectToUser(poll) {
+async function revealCorrectToUser(poll) {
   if (timerInterval) clearInterval(timerInterval);
 
   const correctIdx = Number(poll.correct);
@@ -419,9 +452,44 @@ function revealCorrectToUser(poll) {
       btn.classList.add('wrong-answer');
     }
   });
+
+  /*
+    Здесь фиксируем, что ответ по этому вопросу раскрыт.
+    Только после этого обновляем счёт.
+  */
+  revealedQuestions[poll.id] = true;
+  await updateMyScoreOnlyRevealed();
 }
 
-async function updateMyScore() {
+async function updateMyScoreOnlyRevealed() {
+  if (!myName) {
+    myScore = 0;
+    return;
+  }
+
+  let score = 0;
+
+  for (const qid of QUESTION_ORDER) {
+    if (!revealedQuestions[qid]) continue;
+
+    const snap = await db.ref('responses/' + qid + '/' + safeKey(myName)).once('value');
+    const data = snap.val();
+
+    if (data && Number(data.answer) === QUESTIONS_META[qid].correct) {
+      score++;
+    }
+  }
+
+  myScore = score;
+
+  const pill = document.querySelector('.score-pill');
+
+  if (pill) {
+    pill.textContent = `Правильных ответов: ${myScore}`;
+  }
+}
+
+async function updateMyFinalScore() {
   if (!myName) {
     myScore = 0;
     return;
@@ -439,18 +507,14 @@ async function updateMyScore() {
   }
 
   myScore = score;
-
-  const pill = document.querySelector('.score-pill');
-  if (pill) {
-    pill.textContent = `Правильных ответов: ${myScore}`;
-  }
 }
 
 async function showFinished() {
-  await updateMyScore();
+  await updateMyFinalScore();
 
   app.innerHTML = `
     <div class="score-pill">Ваш результат: ${myScore}</div>
+
     <div class="card state">
       <div class="state-title">Квиз завершён</div>
       <div>Спасибо за участие</div>
@@ -462,12 +526,11 @@ db.ref('state').on('value', async (snap) => {
   const state = snap.val() || {};
   const poll = state.currentPoll || null;
   const firebaseSession = state.session ? String(state.session) : '';
+  const localSession = localStorage.getItem('quizSession') || '';
 
-  if (firebaseSession && firebaseSession !== String(currentSession)) {
+  if (firebaseSession) {
     currentSession = firebaseSession;
   }
-
-  const localSession = localStorage.getItem('quizSession') || '';
 
   if (!firebaseSession) {
     showNameForm();
@@ -477,9 +540,11 @@ db.ref('state').on('value', async (snap) => {
   if (firebaseSession !== localSession) {
     myName = '';
     myScore = 0;
+    revealedQuestions = {};
     selectedAnswer = null;
     currentPollId = null;
     lastRenderedKey = '';
+
     showNameForm();
     return;
   }
@@ -490,8 +555,6 @@ db.ref('state').on('value', async (snap) => {
     showNameForm();
     return;
   }
-
-  await updateMyScore();
 
   if (state.quizStatus === 'finished') {
     showFinished();
@@ -510,6 +573,7 @@ db.ref('state').on('value', async (snap) => {
       lastRenderedKey = renderKey;
       renderPoll(poll);
     }
+
     return;
   }
 
@@ -518,14 +582,20 @@ db.ref('state').on('value', async (snap) => {
       renderPoll(poll);
     }
 
-    revealCorrectToUser(poll);
+    await revealCorrectToUser(poll);
     lastRenderedKey = renderKey;
   }
 });
 
-db.ref('responses').on('value', () => {
-  updateMyScore();
-});
+/*
+  ВАЖНО:
+  Больше НЕ обновляем счёт при любом изменении responses.
+  Иначе счёт снова будет меняться сразу после выбора ответа.
+*/
+
+// db.ref('responses').on('value', () => {
+//   updateMyScore();
+// });
 
 function safeKey(name) {
   return String(name)
